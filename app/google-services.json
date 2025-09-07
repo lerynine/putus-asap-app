@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "887703827976",
+    "project_id": "putus-asap",
+    "storage_bucket": "putus-asap.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:887703827976:android:7a642f604b1ddfd9d603bd",
+        "android_client_info": {
+          "package_name": "com.example.putusasap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSKMlQOLsYZm0EjEpk0EwErawAnRs5f08"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
