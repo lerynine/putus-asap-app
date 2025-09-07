@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -83,60 +84,70 @@ fun LoginScreen(
             .fillMaxSize()
             .background(Red)
     ) {
-        // ✅ Hiasan kiri atas
+        // ✅ Hiasan kiri atas (benar-benar mepet kiri atas)
         Image(
             painter = painterResource(id = R.drawable.ic_decor),
             contentDescription = "Decor",
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(16.dp)
-                .size(80.dp)
+                .wrapContentSize(Alignment.TopStart) // isi sesuai ukuran asli drawable
+                .offset(x = 0.dp, y = 0.dp)          // tanpa jarak
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 40.dp),
+                .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo",
-                modifier = Modifier.size(80.dp)
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // Gambar orang
-            Image(
-                painter = painterResource(id = R.drawable.img_person),
-                contentDescription = "Person",
-                modifier = Modifier
-                    .height(200.dp)
-                    .fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = "Masuk dan\nmulai bebas dari asap!",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(horizontal = 24.dp)
+                modifier = Modifier.size(70.dp)
             )
 
             Spacer(Modifier.height(16.dp))
 
-            // Kotak putih rounded
-            Card(
+            // ✅ Bagian tengah: teks + gambar orang
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // Teks
+                Text(
+                    text = "Masuk dan\nmulai bebas\ndari asap!",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    lineHeight = 36.sp,
+                    modifier = Modifier
+                        .padding(start = 24.dp, bottom = 64.dp)
+                        .weight(1f)
+                )
+
+                // Gambar orang
+                Image(
+                    painter = painterResource(id = R.drawable.img_person),
+                    contentDescription = "Person",
+                    contentScale = ContentScale.FillHeight, // biar memenuhi tinggi Row
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .wrapContentWidth(Alignment.End)
+                        .offset(y = 16.dp) // dorong ke bawah, boleh positif
+                        .padding(end = 16.dp)
+                )
+            }
+
+            // ✅ Kotak putih rounded
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction = 0.65f),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White) // selalu putih
             ) {
                 Column(
                     modifier = Modifier
@@ -225,3 +236,4 @@ fun LoginScreen(
         }
     }
 }
+

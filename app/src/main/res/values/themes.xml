@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.PutusAsap" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.PutusAsap" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Samakan warna background dengan splash Compose -->
+        <item name="android:windowBackground">@color/splash_red</item>
+    </style>
 </resources>

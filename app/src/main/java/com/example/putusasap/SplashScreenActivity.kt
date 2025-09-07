@@ -27,7 +27,7 @@ class SplashScreenActivity : ComponentActivity() {
         setContent {
             SplashScreen(
                 onFinished = {
-                    startActivity(Intent(this, MainActivity::class.java))
+                    startActivity(Intent(this, LoginActivity::class.java))
                     finish()
                 }
             )
@@ -65,25 +65,27 @@ private fun SplashContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SplashRed),
-        contentAlignment = Alignment.BottomCenter
+            .background(SplashRed)
     ) {
         Column(
-            modifier = Modifier.padding(bottom = 120.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 100.dp), // geser semua ke atas, atur sesuai selera
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            // Logo paru-paru (image asset)
+            // Logo paru-paru
             Image(
                 painter = painterResource(id = R.drawable.ic_lungs),
                 contentDescription = "Logo Lungs",
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(160.dp) // bisa disesuaikan, tadinya 200dp
                     .alpha(logoAlpha)
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp)) // jarak antara logo & tulisan
 
-            // Judul PutusAsap (image asset)
+            // Judul PutusAsap
             Image(
                 painter = painterResource(id = R.drawable.ic_putusasap),
                 contentDescription = "Putus Asap Title",
