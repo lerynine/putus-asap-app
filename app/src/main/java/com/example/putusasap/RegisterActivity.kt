@@ -9,16 +9,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,65 +28,76 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.putusasap.ui.theme.PutusAsapTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.example.putusasap.ui.theme.PutusAsapTheme
 
 class RegisterActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
-    private lateinit var db: FirebaseFirestore
+    private lateinit var firestore: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         auth = FirebaseAuth.getInstance()
-        db = FirebaseFirestore.getInstance()
+        firestore = FirebaseFirestore.getInstance()
 
         setContent {
             PutusAsapTheme {
+                var isLoading by remember { mutableStateOf(false) }
+
                 RegisterScreen(
-                    onRegisterClick = { name, email, password, confirmPassword ->
-                        if (password != confirmPassword) {
-                            Toast.makeText(this, "Password tidak sama", Toast.LENGTH_SHORT).show()
-                        } else {
-                            registerUser(name, email, password)
+                    onRegisterClick = { name, email, password ->
+                        isLoading = true
+                        registerUser(name, email, password) {
+                            isLoading = false
                         }
+                    },
+                    onForgotPasswordClick = {
+                        Toast.makeText(this, "Fitur lupa sandi belum dibuat", Toast.LENGTH_SHORT).show()
                     },
                     onLoginClick = {
                         startActivity(Intent(this, LoginActivity::class.java))
-                        finish()
-                    }
+                    },
+                    isLoading = isLoading
                 )
             }
         }
     }
 
-    private fun registerUser(name: String, email: String, password: String) {
+    private fun registerUser(name: String, email: String, password: String, onComplete: () -> Unit) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
+                    val userId = auth.currentUser?.uid
                     val user = hashMapOf(
-                        "uid" to uid,
+                        "uid" to userId,
                         "name" to name,
                         "email" to email
                     )
-                    db.collection("users")
-                        .document(uid)
-                        .set(user)
-                        .addOnSuccessListener {
-                            Toast.makeText(this, "Pendaftaran berhasil!", Toast.LENGTH_SHORT).show()
-                            startActivity(Intent(this, MainActivity::class.java))
-                            finish()
-                        }
-                        .addOnFailureListener {
-                            Toast.makeText(this, "Gagal simpan data user", Toast.LENGTH_SHORT).show()
-                        }
+
+                    if (userId != null) {
+                        firestore.collection("users")
+                            .document(userId)
+                            .set(user)
+                            .addOnSuccessListener {
+                                // intent ke SmokeInfoActivity, bukan MainActivity
+                                startActivity(Intent(this, SmokeInfoActivity::class.java))
+                                finish()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(this, "Gagal simpan data: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
+                            .addOnCompleteListener { onComplete() }
+                    } else {
+                        onComplete()
+                    }
                 } else {
                     Toast.makeText(
                         this,
-                        "Gagal daftar: ${task.exception?.message}",
+                        "Pendaftaran gagal: ${task.exception?.message}",
                         Toast.LENGTH_LONG
                     ).show()
+                    onComplete()
                 }
             }
     }
@@ -94,8 +107,10 @@ private val Red = Color(0xFFC15F56)
 
 @Composable
 fun RegisterScreen(
-    onRegisterClick: (String, String, String, String) -> Unit,
-    onLoginClick: () -> Unit
+    onRegisterClick: (String, String, String) -> Unit,
+    onForgotPasswordClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    isLoading: Boolean
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -103,29 +118,28 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Red)
     ) {
-        // ✅ Hiasan kiri atas (benar-benar mepet kiri atas)
         Image(
             painter = painterResource(id = R.drawable.ic_decor),
             contentDescription = "Decor",
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .wrapContentSize(Alignment.TopStart) // isi sesuai ukuran asli drawable
-                .offset(x = 0.dp, y = 0.dp)          // tanpa jarak
+                .wrapContentSize(Alignment.TopStart)
+                .offset(x = 0.dp, y = 0.dp)
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 40.dp),
+                .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo",
@@ -134,14 +148,12 @@ fun RegisterScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ✅ Bagian tengah: teks + gambar orang
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 verticalAlignment = Alignment.Bottom
             ) {
-                // Teks
                 Text(
                     text = "Masuk dan\nmulai bebas\ndari asap!",
                     fontSize = 28.sp,
@@ -153,31 +165,30 @@ fun RegisterScreen(
                         .weight(1f)
                 )
 
-                // Gambar orang
                 Image(
                     painter = painterResource(id = R.drawable.img_person),
                     contentDescription = "Person",
-                    contentScale = ContentScale.FillHeight, // biar memenuhi tinggi Row
+                    contentScale = ContentScale.FillHeight,
                     modifier = Modifier
                         .fillMaxHeight()
                         .wrapContentWidth(Alignment.End)
-                        .offset(y = 16.dp) // dorong ke bawah, boleh positif
+                        .offset(y = 16.dp)
                         .padding(end = 16.dp)
                 )
             }
 
-            // Kotak putih rounded
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .fillMaxHeight(fraction = 0.65f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp),
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedTextField(
@@ -224,7 +235,7 @@ fun RegisterScreen(
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = { Text("Ulangi Kata Sandi") },
+                        label = { Text("Konfirmasi Kata Sandi") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -242,13 +253,23 @@ fun RegisterScreen(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // Tombol Daftar
                     Button(
-                        onClick = { onRegisterClick(name, email, password, confirmPassword) },
+                        onClick = {
+                            if (password == confirmPassword) {
+                                onRegisterClick(name, email, password)
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Konfirmasi password tidak sama",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                         shape = RoundedCornerShape(8.dp),
+                        enabled = !isLoading, // disable kalau loading
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         contentPadding = PaddingValues()
                     ) {
@@ -263,7 +284,15 @@ fun RegisterScreen(
                                 .fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Daftar", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            } else {
+                                Text("Daftar", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 
