@@ -20,14 +20,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.activity.compose.setContent
+import com.google.firebase.auth.FirebaseAuth
 
 class SplashScreenActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             SplashScreen(
                 onFinished = {
-                    startActivity(Intent(this, LoginActivity::class.java))
+                    val currentUser = FirebaseAuth.getInstance().currentUser
+                    if (currentUser != null) {
+                        // ✅ User sudah login → langsung ke MainActivity
+                        startActivity(Intent(this, MainActivity::class.java))
+                    } else {
+                        // ✅ Belum login → ke LoginActivity
+                        startActivity(Intent(this, LoginActivity::class.java))
+                    }
                     finish()
                 }
             )
