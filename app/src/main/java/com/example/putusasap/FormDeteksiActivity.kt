@@ -1,4 +1,4 @@
-package com.example.putusasap
+package com.example.putusasap.com.example.putusasap
 
 import android.content.Intent
 import android.os.Bundle
@@ -24,6 +24,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.putusasap.ui.theme.PutusAsapTheme
+import android.content.Context
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import com.example.putusasap.HasilDeteksiActivity
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 
 @OptIn(ExperimentalMaterial3Api::class)
 class FormDeteksiActivity : ComponentActivity() {
@@ -35,7 +47,7 @@ class FormDeteksiActivity : ComponentActivity() {
                     onBack = { finish() },
                     onSubmit = { dataMap ->
                         Toast.makeText(this, "Hasil siap — data terisi", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this, MainActivity::class.java))
+                        startActivity(Intent(this, com.example.putusasap.MainActivity::class.java))
                         finish()
                     }
                 )
@@ -251,16 +263,128 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         return@Button
                     }
 
-                    val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                    val currentUser = FirebaseAuth.getInstance().currentUser
                     val userId = currentUser?.uid ?: "unknown_user"
 
+                    // 🔹 Variabel hasil model
+                    var probAsthma = 0f
+                    var kategoriAsthma = "N/A"
+
+                    var probCardio = 0f
+                    var kategoriCardio = "N/A"
+
+                    var kategoriLung = "N/A"
+
+                    // 🔹 Model Asthma
+                    if (!peakFlow.isNullOrEmpty()) {
+                        try {
+                            val interpreter = Interpreter(loadModelFile(context, "asthma_model.tflite"))
+
+                            val input = FloatArray(1 + 1 + 3 + 2 + 1)
+                            var idx = 0
+                            input[idx++] = age.toFloatOrNull() ?: 0f
+                            input[idx++] = encodeGender(gender)
+                            encodeSmoking(smokingStatus).forEach { input[idx++] = it }
+                            encodeMedication(medication).forEach { input[idx++] = it }
+                            input[idx++] = peakFlow.toFloatOrNull() ?: 0f
+
+                            val inputBuffer = arrayOf(input)
+                            val outputBuffer = Array(1) { FloatArray(1) }
+                            interpreter.run(inputBuffer, outputBuffer)
+
+                            probAsthma = outputBuffer[0][0]
+                            kategoriAsthma = categorizeRisk(probAsthma)
+
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error ML (Asthma): ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    // 🔹 Model Cardio
+                    if (!apHi.isNullOrEmpty() && !apLo.isNullOrEmpty() &&
+                        !cholesterol.isNullOrEmpty() && !glucose.isNullOrEmpty()
+                    ) {
+                        try {
+                            val interpreter = Interpreter(loadModelFile(context, "cardio_model.tflite"))
+
+                            val input = FloatArray(11)
+                            var idx = 0
+                            input[idx++] = age.toFloatOrNull() ?: 0f
+                            input[idx++] = if (gender == "Male") 2f else 1f
+                            input[idx++] = height.toFloatOrNull() ?: 0f
+                            input[idx++] = weight.toFloatOrNull() ?: 0f
+                            input[idx++] = apHi.toFloatOrNull() ?: 0f
+                            input[idx++] = apLo.toFloatOrNull() ?: 0f
+                            input[idx++] = cholesterol.toFloatOrNull() ?: 0f
+                            input[idx++] = glucose.toFloatOrNull() ?: 0f
+                            input[idx++] = if (smokingHabitual) 1f else 0f
+                            input[idx++] = if (riskAlcoholScale > 5) 1f else 0f
+                            input[idx++] = if (physicalActivity) 1f else 0f
+
+                            val inputBuffer = arrayOf(input)
+                            val outputBuffer = Array(1) { FloatArray(1) }
+                            interpreter.run(inputBuffer, outputBuffer)
+
+                            probCardio = outputBuffer[0][0]
+                            kategoriCardio =
+                                if (probCardio > 0.5f) "Risiko Tinggi Cardio" else "Risiko Rendah Cardio"
+
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error ML (Cardio): ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+
+                    // 🔹 Model Lung Disease
+                    try {
+                        val interpreter = Interpreter(loadModelFile(context, "lung_disease_model.tflite"))
+
+                        val input = FloatArray(22)
+                        var idx = 0
+                        input[idx++] = age.toFloatOrNull() ?: 0f
+                        input[idx++] = if (gender == "Male") 2f else 1f
+                        input[idx++] = airPollution.toFloat()
+                        input[idx++] = riskAlcoholScale.toFloat()
+                        input[idx++] = if (dustAllergyPresent) 1f else 0f
+                        input[idx++] = occupationalHazards.toFloat()
+                        input[idx++] = geneticRisk.toFloat()
+                        input[idx++] = if (chronicLungDisease) 1f else 0f
+                        input[idx++] = balancedDiet.toFloat()
+                        input[idx++] = obesityScale.toFloat()
+                        input[idx++] = if (smokingHabitual) 1f else 0f
+                        input[idx++] = if (passiveSmoker) 1f else 0f
+                        input[idx++] = if (chestPain) 1f else 0f
+                        input[idx++] = if (coughingBlood) 1f else 0f
+                        input[idx++] = if (fatigue) 1f else 0f
+                        input[idx++] = if (weightLoss) 1f else 0f
+                        input[idx++] = if (shortnessOfBreath) 1f else 0f
+                        input[idx++] = if (wheezing) 1f else 0f
+                        input[idx++] = if (swallowingDifficulty) 1f else 0f
+                        input[idx++] = if (clubbing) 1f else 0f
+                        input[idx++] = if (frequentCold) 1f else 0f
+                        input[idx++] = if (dryCough) 1f else 0f
+                        input[idx++] = if (snoring) 1f else 0f
+
+                        val inputBuffer = arrayOf(input)
+                        val outputBuffer = Array(1) { FloatArray(3) }
+                        interpreter.run(inputBuffer, outputBuffer)
+
+                        val result = outputBuffer[0]
+                        val maxIdx = result.indices.maxByOrNull { result[it] } ?: 0
+                        kategoriLung = when (maxIdx) {
+                            0 -> "Low"
+                            1 -> "Medium"
+                            else -> "High"
+                        }
+
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Error ML (Lung Disease): ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+
+                    // --- Simpan data ---
                     val data = mapOf(
-                        // --- Basic Info ---
                         "user_id" to userId,
                         "age" to age.toIntOrNull(),
-                        "gender" to if (gender == "Male") 2 else 1,   // 1=Female, 2=Male
-
-                        // --- Cardio Dataset Fields ---
+                        "gender" to if (gender == "Male") 2 else 1,
                         "height" to height.toIntOrNull(),
                         "weight" to weight.toFloatOrNull(),
                         "ap_hi" to apHi.toIntOrNull(),
@@ -268,48 +392,39 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         "cholesterol" to cholesterol.toIntOrNull(),
                         "glucose" to glucose.toIntOrNull(),
                         "smoke" to if (smokingHabitual) 1 else 0,
-                        "alco" to if (riskAlcoholScale > 5) 1 else 0, // contoh konversi slider ke boolean
+                        "alco" to if (riskAlcoholScale > 5) 1 else 0,
                         "active" to if (physicalActivity) 1 else 0,
-
-                        // --- Asthma Dataset Fields ---
                         "smoking_status" to smokingStatus,
                         "medication" to medication,
                         "peak_flow" to peakFlow.toIntOrNull(),
+                        "created_at" to Timestamp.now(),
 
-                        // --- Lung Cancer Dataset Fields ---
-                        "air_pollution" to airPollution.toInt(),
-                        "alcohol_use_scale" to riskAlcoholScale.toInt(),
-                        "dust_allergy" to if (dustAllergyPresent) 1 else 0,
-                        "dust_allergy_intensity" to if (dustAllergyPresent) dustAllergyIntensity.toInt() else null,
-                        "occupational_hazards" to occupationalHazards.toInt(),
-                        "genetic_risk" to geneticRisk.toInt(),
-                        "chronic_lung_disease" to if (chronicLungDisease) 1 else 0,
-                        "balanced_diet" to balancedDiet.toInt(),
-                        "obesity_scale" to obesityScale.toInt(),
-                        "passive_smoker" to if (passiveSmoker) 1 else 0,
+                        // hasil model terpisah
+                        "probabilitas_asthma" to String.format("%.2f", probAsthma),
+                        "resiko_asthma" to kategoriAsthma,
 
-                        // --- Symptoms ---
-                        "symptoms.chest_pain" to if (chestPain) 1 else 0,
-                        "symptoms.coughing_blood" to if (coughingBlood) 1 else 0,
-                        "symptoms.fatigue" to if (fatigue) 1 else 0,
-                        "symptoms.weight_loss" to if (weightLoss) 1 else 0,
-                        "symptoms.shortness_breath" to if (shortnessOfBreath) 1 else 0,
-                        "symptoms.wheezing" to if (wheezing) 1 else 0,
-                        "symptoms.swallowing_difficulty" to if (swallowingDifficulty) 1 else 0,
-                        "symptoms.clubbing" to if (clubbing) 1 else 0,
-                        "symptoms.frequent_cold" to if (frequentCold) 1 else 0,
-                        "symptoms.dry_cough" to if (dryCough) 1 else 0,
-                        "symptoms.snoring" to if (snoring) 1 else 0,
+                        "probabilitas_cardio" to String.format("%.2f", probCardio),
+                        "resiko_cardio" to kategoriCardio,
 
-                        "created_at" to com.google.firebase.Timestamp.now()
+                        "resiko_lung" to kategoriLung
                     )
 
-                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    val db = FirebaseFirestore.getInstance()
                     db.collection("riwayat_deteksi")
                         .add(data)
-                        .addOnSuccessListener {
+                        .addOnSuccessListener { docRef ->
+                            val docId = docRef.id
+
                             Toast.makeText(context, "Data berhasil disimpan", Toast.LENGTH_SHORT).show()
-                            onSubmit(data) // lanjut ke MainActivity
+
+                            val intent = Intent(context, com.example.putusasap.HasilDeteksiActivity::class.java)
+                            intent.putExtra("resiko_lung", "Rendah")
+                            intent.putExtra("resiko_asthma", "Sedang")
+                            intent.putExtra("resiko_cardio", "Tinggi")
+                            context.startActivity(intent)
+
+
+                            onSubmit(data)
                         }
                         .addOnFailureListener { e ->
                             Toast.makeText(context, "Gagal simpan: ${e.message}", Toast.LENGTH_LONG).show()
@@ -319,7 +434,7 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                 enabled = mandatoryFilled,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56))
             ) {
-                Text("Lihat Hasil", color = Color.White)
+                Text("Lihat Hasil")
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -477,4 +592,38 @@ fun SmokingStatusDropdown(
     }
 }
 
+// Load model TFLite
+fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {
+    val fileDescriptor = context.assets.openFd(modelName)
+    val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+    val fileChannel = inputStream.channel
+    return fileChannel.map(
+        FileChannel.MapMode.READ_ONLY,
+        fileDescriptor.startOffset,
+        fileDescriptor.declaredLength
+    )
+}
+
+fun categorizeRisk(prob: Float): String =
+    when {
+        prob < 0.33f -> "Rendah"
+        prob < 0.66f -> "Sedang"
+        else -> "Tinggi"
+    }
+
+// Encode helper
+fun encodeGender(gender: String): Float = if (gender == "Male") 1f else 0f
+
+fun encodeSmoking(smokingStatus: String): FloatArray =
+    when (smokingStatus) {
+        "Ex-Smoker" -> floatArrayOf(0f, 1f, 0f)
+        "Current" -> floatArrayOf(0f, 0f, 1f)
+        else -> floatArrayOf(1f, 0f, 0f) // Non-Smoker
+    }
+
+fun encodeMedication(med: String): FloatArray =
+    when (med) {
+        "Inhaler" -> floatArrayOf(0f, 1f)
+        else -> floatArrayOf(1f, 0f) // None/default
+    }
 

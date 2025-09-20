@@ -124,7 +124,10 @@ fun MainScreen(userName: String) {
                         Spacer(Modifier.height(8.dp))
 
                         Button(
-                            onClick = { /* TODO */ },
+                            onClick = {
+                                val intent = Intent(context, MisiHarianActivity::class.java)
+                                context.startActivity(intent)
+                            },
                             shape = RoundedCornerShape(50),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFFC15F56)
@@ -144,7 +147,7 @@ fun MainScreen(userName: String) {
                                 title = "Deteksi Risiko Penyakit",
                                 icon = R.drawable.ic_health,
                                 onClick = {
-                                    context.startActivity(Intent(context, FormDeteksiActivity::class.java))
+                                    context.startActivity(Intent(context, com.example.putusasap.com.example.putusasap.FormDeteksiActivity::class.java))
                                 }
                             )
 
@@ -229,11 +232,12 @@ fun DailyMissionProgress(progress: Float) {
 @Composable
 fun BottomNavigationBar() {
     var selectedIndex by remember { mutableStateOf(0) }
+    val context = LocalContext.current
 
     NavigationBar(
         containerColor = Color.White
     ) {
-        listOf("Home", "Misi", "Profile").forEachIndexed { index, label ->
+        listOf("Home", "Riwayat", "Profile").forEachIndexed { index, label ->
             val isSelected = selectedIndex == index
             val iconRes = when (index) {
                 0 -> if (isSelected) R.drawable.ic_home_selected else R.drawable.ic_home_unselected
@@ -244,7 +248,14 @@ fun BottomNavigationBar() {
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { selectedIndex = index },
+                onClick = {
+                    selectedIndex = index
+                    when (index) {
+                        0 -> context.startActivity(Intent(context, MainActivity::class.java))
+                        1 -> context.startActivity(Intent(context, RiwayatActivity::class.java))
+                        2 -> context.startActivity(Intent(context, ProfileActivity::class.java))
+                    }
+                },
                 icon = {
                     Image(
                         painter = painterResource(id = iconRes),
@@ -256,7 +267,7 @@ fun BottomNavigationBar() {
                     Text(
                         label,
                         fontSize = 10.sp,
-                        color = if (isSelected) Color(0xFFC15F56) else Color.Gray // ✅ hanya ubah warna
+                        color = if (isSelected) Color(0xFFC15F56) else Color.Gray
                     )
                 }
             )
