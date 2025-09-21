@@ -30,6 +30,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,6 +54,34 @@ fun AktivitasScreen(onBackClick: () -> Unit) {
     var isPaused by remember { mutableStateOf(false) }
     var isFinished by remember { mutableStateOf(false) }
     var timeLeft by remember { mutableStateOf(30 * 60) } // 30 menit = 1800 detik
+    var isLoading by remember { mutableStateOf(true) }
+
+    // ✅ Cek Firestore apakah sudah selesai
+    LaunchedEffect(Unit) {
+        val db = FirebaseFirestore.getInstance()
+        val auth = FirebaseAuth.getInstance()
+        val uid = auth.currentUser?.uid
+        if (uid != null) {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val today = dateFormat.format(Date())
+
+            val snapshot = db.collection("misi")
+                .whereEqualTo("uid", uid)
+                .whereEqualTo("tanggal", today)
+                .limit(1)
+                .get()
+                .await()
+
+            if (!snapshot.isEmpty) {
+                val doc = snapshot.documents[0]
+                val aktivitasFisik = doc.getBoolean("aktivitas_fisik") ?: false
+                if (aktivitasFisik) {
+                    isFinished = true   // langsung selesai
+                }
+            }
+        }
+        isLoading = false
+    }
 
     // Timer Coroutine
     LaunchedEffect(isStarted, isPaused) {

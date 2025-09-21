@@ -135,7 +135,11 @@ fun MisiHarianScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
                 .aspectRatio(3f)
-                .clickable { onClickAir() }
+                .clickable {
+                    context.startActivity(
+                        Intent(context, AirActivity::class.java)
+                    )
+                }
         )
 
         Spacer(modifier = Modifier.height(12.dp))

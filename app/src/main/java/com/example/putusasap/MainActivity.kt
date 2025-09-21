@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +28,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.putusasap.ui.theme.PutusAsapTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -213,6 +220,56 @@ fun ImageButton(image: Int, onClick: () -> Unit) {
 }
 
 @Composable
+fun DailyMissionProgressScreen() {
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid ?: return
+    val db = FirebaseFirestore.getInstance()
+
+    var progress by remember { mutableStateOf(0f) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // ✅ Cek misi dari Firestore
+    LaunchedEffect(Unit) {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val today = dateFormat.format(Date())
+
+        val snapshot = db.collection("misi")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("tanggal", today)
+            .get()
+            .await()
+
+        if (snapshot.isEmpty) {
+            // Belum ada dokumen hari ini
+            progress = 0f
+        } else {
+            val doc = snapshot.documents[0]
+
+            // daftar field misi
+            val fields = listOf("misi_rokok", "misi_aktivitas", "misi_tidur", "misi_air")
+
+            // hitung berapa true
+            val completed = fields.count { doc.getBoolean(it) == true }
+
+            // 1 field = 25%
+            progress = completed * 0.25f
+        }
+        isLoading = false
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFC15F56))
+        }
+    } else {
+        DailyMissionProgress(progress)
+    }
+}
+
+@Composable
 fun DailyMissionProgress(progress: Float) {
     Box(contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
@@ -224,7 +281,7 @@ fun DailyMissionProgress(progress: Float) {
         Image(
             painter = painterResource(id = R.drawable.img_person_mission),
             contentDescription = "Mission Person",
-            modifier = Modifier.size(150.dp) // ✅ lebih besar
+            modifier = Modifier.size(150.dp)
         )
     }
 }
