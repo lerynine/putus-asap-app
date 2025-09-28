@@ -3,11 +3,7 @@ package com.example.putusasap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,13 +19,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.sin
 
 class AirActivity : ComponentActivity() {
@@ -47,9 +47,20 @@ fun AirScreen(onBackClick: () -> Unit) {
         colors = listOf(Color(0xFFFFC5C0), Color(0xFFFFF5F5))
     )
 
-    var konsumsi by remember { mutableStateOf(2400f) }
-    val target = 2500f
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
+    // 🔹 Load & Simpan konsumsi lokal pakai DataStore
+    val dataStore = remember { UserPreferences(context) }
+    var konsumsi by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        dataStore.getWater().collect { saved ->
+            konsumsi = saved
+        }
+    }
+
+    val target = 2500f
     val progress = (konsumsi / target).coerceIn(0f, 1f)
 
     Box(
@@ -120,7 +131,15 @@ fun AirScreen(onBackClick: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { konsumsi += 100f },
+                onClick = {
+                    konsumsi += 100f
+                    scope.launch { dataStore.saveWater(konsumsi) }
+
+                    // 🔹 Jika sudah mencapai target, simpan ke Firestore
+                    if (konsumsi >= target) {
+                        saveMissionToFirestore()
+                    }
+                },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5AA3E8))
             ) {
@@ -130,7 +149,7 @@ fun AirScreen(onBackClick: () -> Unit) {
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = { /* Simpan ke Firestore */ },
+                onClick = { onBackClick() },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56)),
                 modifier = Modifier
@@ -151,7 +170,7 @@ fun WaterWave(progress: Float) {
         initialValue = 0f,
         targetValue = 2 * Math.PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = androidx.compose.animation.core.tween(3000, easing = LinearEasing),
+            animation = tween(3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "waveShift"
@@ -160,7 +179,7 @@ fun WaterWave(progress: Float) {
     Canvas(modifier = Modifier.size(220.dp)) {
         val radius = size.minDimension / 2
         val center = Offset(size.width / 2, size.height / 2)
-        val circlePath = Path().apply {
+        val circlePath = androidx.compose.ui.graphics.Path().apply {
             addOval(Rect(center = center, radius = radius))
         }
 
@@ -172,13 +191,14 @@ fun WaterWave(progress: Float) {
 
             val waterHeight = size.height * (1 - progress)
 
-            val path = Path().apply {
+            val path = androidx.compose.ui.graphics.Path().apply {
                 moveTo(0f, waterHeight)
                 val waveLength = size.width / 1.5f
                 val amplitude = 12f
 
                 for (x in 0..size.width.toInt()) {
-                    val y = (waterHeight + amplitude * sin((x / waveLength) * 2 * Math.PI + waveShift)).toFloat()
+                    val y =
+                        (waterHeight + amplitude * sin((x / waveLength) * 2 * Math.PI + waveShift)).toFloat()
                     lineTo(x.toFloat(), y)
                 }
                 lineTo(size.width, size.height)
@@ -194,4 +214,20 @@ fun WaterWave(progress: Float) {
             )
         }
     }
+}
+
+// 🔹 Simpan progress ke Firestore saat target tercapai
+fun saveMissionToFirestore() {
+    val firestore = FirebaseFirestore.getInstance()
+    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+    val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    val docRef = firestore.collection("misi").document("${uid}_$today")
+
+    val data = mapOf(
+        "air" to true,
+        "tanggal" to today
+    )
+
+    docRef.set(data) // akan overwrite jika ada, otomatis buat baru kalau belum ada
 }

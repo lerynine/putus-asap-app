@@ -126,7 +126,7 @@ fun MainScreen(userName: String) {
 
                         Spacer(Modifier.height(16.dp))
 
-                        DailyMissionProgress(progress = 0.4f)
+                        DailyMissionProgressScreen()
 
                         Spacer(Modifier.height(8.dp))
 

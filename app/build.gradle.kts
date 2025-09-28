@@ -71,6 +71,8 @@ dependencies {
     // Calendar (butuh Compose 1.7.x)
     implementation("com.kizitonwose.calendar:compose:2.3.0")
 
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
