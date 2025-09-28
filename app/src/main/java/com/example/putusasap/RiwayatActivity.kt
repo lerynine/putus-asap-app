@@ -44,15 +44,15 @@ fun RiwayatScreen() {
     val today = LocalDate.now()
     var selesaiDates by remember { mutableStateOf(setOf<LocalDate>()) }
 
-    // Ambil data Firestore
-    // Ambil data Firestore
+    var riwayat by remember { mutableStateOf(listOf<String>()) } // list tanggal deteksi
+    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+
+    // ✅ Ambil data misi untuk kalender
     LaunchedEffect(Unit) {
         val snapshot = FirebaseFirestore.getInstance().collection("misi").get().await()
         val list = snapshot.documents.mapNotNull { doc ->
             val tanggal = doc.getString("tanggal")
-            val uid = doc.getString("uid")
-
-            // misal field true/false di doc
             val m1 = doc.getBoolean("tidur") ?: false
             val m2 = doc.getBoolean("misi_rokok") ?: false
             val m3 = doc.getBoolean("aktivitas_fisik") ?: false
@@ -65,8 +65,19 @@ fun RiwayatScreen() {
         selesaiDates = list.toSet()
     }
 
+    // ✅ Ambil riwayat deteksi
+    LaunchedEffect(Unit) {
+        if (uid != null) {
+            val snapshot = FirebaseFirestore.getInstance()
+                .collection("deteksi")
+                .whereEqualTo("uid", uid)
+                .get()
+                .await()
 
-    // bulan yang sedang ditampilkan
+            riwayat = snapshot.documents.mapNotNull { it.getString("tanggal") }
+        }
+    }
+
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
 
     Scaffold(
@@ -97,22 +108,12 @@ fun RiwayatScreen() {
                         painter = painterResource(id = R.drawable.ic_notification),
                         contentDescription = "Notifikasi",
                         tint = Color.Unspecified, // biar sesuai warna asli icon
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.size(75.dp)
                     )
                 }
             }
 
             Spacer(Modifier.height(8.dp))
-
-            // Kata-kata semangat
-            Text(
-                text = "Tetap konsisten! Satu langkah kecil setiap hari = kemenangan besar 🚀",
-                fontSize = 14.sp,
-                color = Color(0xFF444444),
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Header bulan
             Row(
@@ -193,6 +194,42 @@ fun RiwayatScreen() {
                 }
             }
         }
+        Spacer(Modifier.height(16.dp))
+
+        // ✅ Tambah Riwayat Deteksi
+        Text(
+            text = "Riwayat Deteksi",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        riwayat.forEach { tanggal ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0EE)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Tanggal: $tanggal",
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp,
+                        color = Color.Black
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -225,7 +262,7 @@ fun BottomNavigationBarHistory() {
                     Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = label,
-                        tint = Color.Unspecified,
+                        tint = if (isSelected) Color.White else Color.Gray, // icon berubah
                         modifier = Modifier.size(24.dp)
                     )
                 },
@@ -233,9 +270,16 @@ fun BottomNavigationBarHistory() {
                     Text(
                         label,
                         fontSize = 10.sp,
-                        color = if (isSelected) Color(0xFFC15F56) else Color.Gray
+                        color = if (isSelected) Color.White else Color.Gray
                     )
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color(0xFFC15F56), // 🔴 background merah saat dipilih
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.White,
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
         }
     }

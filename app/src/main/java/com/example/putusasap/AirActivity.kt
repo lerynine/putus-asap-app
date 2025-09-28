@@ -1,6 +1,7 @@
 package com.example.putusasap
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
@@ -8,25 +9,24 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -73,23 +73,24 @@ fun AirScreen(onBackClick: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Back
-            Box(
+            // 🔙 Tombol back di pojok kiri atas tanpa background
+            Row(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(Color.White, CircleShape)
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.Start
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.Black,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { onBackClick() }
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 "Pantauan Konsumsi Air Harian",
@@ -97,22 +98,23 @@ fun AirScreen(onBackClick: () -> Unit) {
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(48.dp))
 
-            // Wadah Air
+            // Ilustrasi Air lebih besar + turun sedikit
             Box(contentAlignment = Alignment.Center) {
-                WaterWave(progress = progress)
+                WaterWave(progress = progress, containerSize = 300.dp)
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         "${konsumsi.toInt()}ml",
-                        fontSize = 24.sp,
+                        fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color(0x66000000), RoundedCornerShape(12.dp))
+                            .background(Color(0x66000000), shape = MaterialTheme.shapes.medium)
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text("Target: ${target.toInt()}ml", color = Color.White)
@@ -120,7 +122,7 @@ fun AirScreen(onBackClick: () -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             Text(
                 "${(progress * 100).toInt()}% dari target tercapai",
@@ -128,42 +130,30 @@ fun AirScreen(onBackClick: () -> Unit) {
                 fontWeight = FontWeight.Medium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Tombol tambah air
             Button(
                 onClick = {
                     konsumsi += 100f
                     scope.launch { dataStore.saveWater(konsumsi) }
 
-                    // 🔹 Jika sudah mencapai target, simpan ke Firestore
+                    // 🔹 Jika sudah mencapai target, simpan ke Firestore otomatis
                     if (konsumsi >= target) {
                         saveMissionToFirestore()
                     }
                 },
-                shape = RoundedCornerShape(50),
+                shape = MaterialTheme.shapes.large,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5AA3E8))
             ) {
                 Text("+ 100ML", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = { onBackClick() },
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("Selesai", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
 @Composable
-fun WaterWave(progress: Float) {
+fun WaterWave(progress: Float, containerSize: Dp = 220.dp) {
     val infiniteTransition = rememberInfiniteTransition(label = "wave")
 
     val waveShift by infiniteTransition.animateFloat(
@@ -176,33 +166,36 @@ fun WaterWave(progress: Float) {
         label = "waveShift"
     )
 
-    Canvas(modifier = Modifier.size(220.dp)) {
-        val radius = size.minDimension / 2
-        val center = Offset(size.width / 2, size.height / 2)
-        val circlePath = androidx.compose.ui.graphics.Path().apply {
+    Canvas(modifier = Modifier.size(containerSize)) {
+        val canvasSize = this.size // ✅ Size dari CanvasScope
+        val radius = canvasSize.minDimension / 2
+        val center = Offset(canvasSize.width / 2, canvasSize.height / 2)
+
+        val circlePath = Path().apply {
             addOval(Rect(center = center, radius = radius))
         }
 
         clipPath(circlePath) {
+            // background dasar air
             drawRect(
                 color = Color(0xFF90CAF9),
-                size = size
+                size = canvasSize
             )
 
-            val waterHeight = size.height * (1 - progress)
+            val waterHeight = canvasSize.height * (1 - progress)
 
-            val path = androidx.compose.ui.graphics.Path().apply {
+            val path = Path().apply {
                 moveTo(0f, waterHeight)
-                val waveLength = size.width / 1.5f
+                val waveLength = canvasSize.width / 1.5f
                 val amplitude = 12f
 
-                for (x in 0..size.width.toInt()) {
-                    val y =
-                        (waterHeight + amplitude * sin((x / waveLength) * 2 * Math.PI + waveShift)).toFloat()
+                for (x in 0..canvasSize.width.toInt()) {
+                    val y = (waterHeight + amplitude *
+                            sin((x / waveLength) * 2 * Math.PI + waveShift)).toFloat()
                     lineTo(x.toFloat(), y)
                 }
-                lineTo(size.width, size.height)
-                lineTo(0f, size.height)
+                lineTo(canvasSize.width, canvasSize.height)
+                lineTo(0f, canvasSize.height)
                 close()
             }
 
@@ -216,18 +209,32 @@ fun WaterWave(progress: Float) {
     }
 }
 
-// 🔹 Simpan progress ke Firestore saat target tercapai
 fun saveMissionToFirestore() {
     val firestore = FirebaseFirestore.getInstance()
-    val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    val user = FirebaseAuth.getInstance().currentUser
 
+    if (user == null) {
+        Log.e("FirestoreSave", "Gagal simpan: User belum login, uid = null")
+        return
+    }
+
+    val uid = user.uid
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     val docRef = firestore.collection("misi").document("${uid}_$today")
 
     val data = mapOf(
         "air" to true,
-        "tanggal" to today
+        "tanggal" to today,
+        "uid" to uid
     )
 
-    docRef.set(data) // akan overwrite jika ada, otomatis buat baru kalau belum ada
+    Log.d("FirestoreSave", "Mencoba simpan data: $data ke doc: ${docRef.path}")
+
+    docRef.set(data, SetOptions.merge())
+        .addOnSuccessListener {
+            Log.d("FirestoreSave", "Berhasil simpan data untuk user $uid")
+        }
+        .addOnFailureListener { e ->
+            Log.e("FirestoreSave", "Gagal simpan data: ${e.message}", e)
+        }
 }

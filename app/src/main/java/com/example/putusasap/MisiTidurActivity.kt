@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -56,14 +57,14 @@ fun MisiTidurScreen(
     val uid = auth.currentUser?.uid ?: ""
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-    // 🔄 Cek apakah sudah isi hari ini
+    // 🔄 Cek apakah sudah isi hari ini (khusus field tidur)
     LaunchedEffect(Unit) {
         if (uid.isNotEmpty()) {
             firestore.collection("misi")
                 .document(uid + "_" + today)
                 .get()
                 .addOnSuccessListener { doc ->
-                    if (doc.exists()) {
+                    if (doc.exists() && doc.contains("tidur")) {
                         sudahIsiHariIni = true
                         selesaiMsg = if (doc.getBoolean("tidur") == true) {
                             "Selamat, kamu sudah memiliki tidur yang cukup ✅"
@@ -120,11 +121,11 @@ fun MisiTidurScreen(
                         val data = hashMapOf(
                             "uid" to uid,
                             "tanggal" to today,
-                            "tidur" to tidurCukup
+                            "tidur" to tidurCukup // selalu ada, true/false
                         )
                         firestore.collection("misi")
                             .document(uid + "_" + today)
-                            .set(data)
+                            .set(data, SetOptions.merge()) // merge agar tidak timpa field lain
                     }
 
                     step = 3

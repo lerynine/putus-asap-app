@@ -151,7 +151,11 @@ fun MisiHarianScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
                 .aspectRatio(3f)
-                .clickable { onClickIstirahat() }
+                .clickable {
+                    context.startActivity(
+                        Intent(context, MisiTidurActivity::class.java)
+                    )
+                }
         )
     }
 }

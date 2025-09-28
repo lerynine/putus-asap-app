@@ -88,6 +88,11 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.PutusAsap" />
+        <activity
+            android:name=".MisiTidurActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.PutusAsap" />
     </application>
 
 

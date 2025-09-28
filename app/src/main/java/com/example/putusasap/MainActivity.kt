@@ -36,15 +36,17 @@ import java.util.Locale
 import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            PutusAsapTheme {
-                MainScreen(userName = "Leryna")
-            }
-        }
+    override fun onResume() {
+        super.onResume()
+        // kasih trigger untuk recomposition
+        refreshed.value = true
+    }
+
+    companion object {
+        val refreshed = mutableStateOf(false)
     }
 }
+
 
 @Composable
 fun MainScreen(userName: String) {
@@ -228,8 +230,10 @@ fun DailyMissionProgressScreen() {
     var progress by remember { mutableStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // ✅ Cek misi dari Firestore
-    LaunchedEffect(Unit) {
+    // observe trigger dari MainActivity
+    val refreshTrigger = MainActivity.refreshed.value
+
+    LaunchedEffect(refreshTrigger) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = dateFormat.format(Date())
 
@@ -240,30 +244,18 @@ fun DailyMissionProgressScreen() {
             .await()
 
         if (snapshot.isEmpty) {
-            // Belum ada dokumen hari ini
             progress = 0f
         } else {
             val doc = snapshot.documents[0]
-
-            // daftar field misi
-            val fields = listOf("misi_rokok", "misi_aktivitas", "misi_tidur", "misi_air")
-
-            // hitung berapa true
+            val fields = listOf("misi_rokok", "misi_aktivitas", "tidur", "air")
             val completed = fields.count { doc.getBoolean(it) == true }
-
-            // 1 field = 25%
             progress = completed * 0.25f
         }
         isLoading = false
     }
 
     if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = Color(0xFFC15F56))
-        }
+        CircularProgressIndicator(color = Color(0xFFC15F56))
     } else {
         DailyMissionProgress(progress)
     }
