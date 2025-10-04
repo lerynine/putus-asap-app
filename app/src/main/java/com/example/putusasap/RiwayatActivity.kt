@@ -3,13 +3,16 @@ package com.example.putusasap
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,11 +47,11 @@ fun RiwayatScreen() {
     val today = LocalDate.now()
     var selesaiDates by remember { mutableStateOf(setOf<LocalDate>()) }
 
-    var riwayat by remember { mutableStateOf(listOf<String>()) } // list tanggal deteksi
+    var riwayat by remember { mutableStateOf(listOf<RiwayatDeteksi>()) }
     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid
 
-    // ✅ Ambil data misi untuk kalender
+    // ✅ Ambil data misi untuk kalender (biarkan tetap)
     LaunchedEffect(Unit) {
         val snapshot = FirebaseFirestore.getInstance().collection("misi").get().await()
         val list = snapshot.documents.mapNotNull { doc ->
@@ -65,30 +68,61 @@ fun RiwayatScreen() {
         selesaiDates = list.toSet()
     }
 
-    // ✅ Ambil riwayat deteksi
+    // ✅ Ambil riwayat deteksi dari Firestore
     LaunchedEffect(Unit) {
         if (uid != null) {
-            val snapshot = FirebaseFirestore.getInstance()
-                .collection("deteksi")
-                .whereEqualTo("uid", uid)
-                .get()
-                .await()
+            try {
+                val snapshot = FirebaseFirestore.getInstance()
+                    .collection("riwayat_deteksi")
+                    .whereEqualTo("user_id", uid)
+                    .get()
+                    .await()
 
-            riwayat = snapshot.documents.mapNotNull { it.getString("tanggal") }
+                Log.d("RiwayatScreen", "Jumlah dokumen: ${snapshot.size()}")
+
+                riwayat = snapshot.documents.mapNotNull { doc ->
+                    val ts = doc.getTimestamp("created_at")
+                    val formattedDate = ts?.toDate()?.let { date ->
+                        val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")
+                        date.toInstant()
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDateTime()
+                            .format(formatter)
+                    } ?: "-"
+
+                    val lung = doc.getString("resiko_lung") ?: "-"
+                    val asthma = doc.getString("resiko_asthma") ?: "-"
+                    val cardio = doc.getString("resiko_cardio") ?: "-"
+
+                    RiwayatDeteksi(
+                        tanggal = formattedDate,
+                        resikoLung = lung,
+                        resikoAsthma = asthma,
+                        resikoCardio = cardio
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e("RiwayatScreen", "Error ambil riwayat: ${e.message}", e)
+            }
+        } else {
+            Log.w("RiwayatScreen", "UID null, user belum login?")
         }
     }
 
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-
+    val scrollState = rememberScrollState()
     Scaffold(
         bottomBar = { BottomNavigationBarHistory() },
         containerColor = Color.White
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),   // ✅ bikin halaman bisa discroll
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header dengan notifikasi
@@ -103,12 +137,16 @@ fun RiwayatScreen() {
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFC15F56)
                 )
-                IconButton(onClick = { /* TODO: Notifikasi */ }) {
+                Box(
+                    modifier = Modifier
+                        .size(75.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_notification),
                         contentDescription = "Notifikasi",
-                        tint = Color.Unspecified, // biar sesuai warna asli icon
-                        modifier = Modifier.size(75.dp)
+                        tint = Color.Unspecified,
+                        modifier = Modifier.fillMaxSize() // isi box
                     )
                 }
             }
@@ -192,41 +230,45 @@ fun RiwayatScreen() {
                         }
                     }
                 }
-            }
-        }
-        Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
 
-        // ✅ Tambah Riwayat Deteksi
-        Text(
-            text = "Riwayat Deteksi",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            modifier = Modifier.fillMaxWidth()
-        )
+                Text(
+                    text = "Riwayat Deteksi",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFC15F56),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-        Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
 
-        riwayat.forEach { tanggal ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0EE)),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Tanggal: $tanggal",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp,
-                        color = Color.Black
-                    )
+                // ✅ Tampilkan data riwayat lengkap
+                riwayat.forEach { data ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0EE)),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Tanggal: ${data.tanggal}",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                color = Color.Black
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Resiko Kanker Paru: ${data.resikoLung}", fontSize = 13.sp)
+                            Text("Resiko Asma: ${data.resikoAsthma}", fontSize = 13.sp)
+                            Text("Resiko Penyakit Jantung: ${data.resikoCardio}", fontSize = 13.sp)
+                        }
+                    }
                 }
             }
         }
@@ -262,7 +304,7 @@ fun BottomNavigationBarHistory() {
                     Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = label,
-                        tint = if (isSelected) Color.White else Color.Gray, // icon berubah
+                        tint = if (isSelected) Color.White else Color.Gray,
                         modifier = Modifier.size(24.dp)
                     )
                 },
@@ -270,13 +312,13 @@ fun BottomNavigationBarHistory() {
                     Text(
                         label,
                         fontSize = 10.sp,
-                        color = if (isSelected) Color.White else Color.Gray
+                        color = Color.Gray // ✅ selalu abu-abu
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = Color(0xFFC15F56), // 🔴 background merah saat dipilih
+                    indicatorColor = Color(0xFFC15F56), // background merah saat dipilih
                     selectedIconColor = Color.White,
-                    selectedTextColor = Color.White,
+                    selectedTextColor = Color.Gray,     // ✅ tetap abu-abu walau selected
                     unselectedIconColor = Color.Gray,
                     unselectedTextColor = Color.Gray
                 )
@@ -284,3 +326,10 @@ fun BottomNavigationBarHistory() {
         }
     }
 }
+
+data class RiwayatDeteksi(
+    val tanggal: String,
+    val resikoLung: String,
+    val resikoAsthma: String,
+    val resikoCardio: String
+)

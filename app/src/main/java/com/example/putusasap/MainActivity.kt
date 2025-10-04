@@ -36,17 +36,15 @@ import java.util.Locale
 import kotlinx.coroutines.tasks.await
 
 class MainActivity : ComponentActivity() {
-    override fun onResume() {
-        super.onResume()
-        // kasih trigger untuk recomposition
-        refreshed.value = true
-    }
-
-    companion object {
-        val refreshed = mutableStateOf(false)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            PutusAsapTheme {
+                MainScreen(userName = "Leryna")
+            }
+        }
     }
 }
-
 
 @Composable
 fun MainScreen(userName: String) {
@@ -164,7 +162,8 @@ fun MainScreen(userName: String) {
                                 title = "Saya Sakau!",
                                 icon = R.drawable.ic_sakau,
                                 onClick = {
-                                    // TODO: nanti diarahkan ke Activity tertentu
+                                    val intent = Intent(context, SayaSakauActivity::class.java)
+                                    context.startActivity(intent)
                                 }
                             )
                         }
@@ -230,10 +229,8 @@ fun DailyMissionProgressScreen() {
     var progress by remember { mutableStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // observe trigger dari MainActivity
-    val refreshTrigger = MainActivity.refreshed.value
-
-    LaunchedEffect(refreshTrigger) {
+    // ✅ Cek misi dari Firestore
+    LaunchedEffect(Unit) {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = dateFormat.format(Date())
 
@@ -244,18 +241,30 @@ fun DailyMissionProgressScreen() {
             .await()
 
         if (snapshot.isEmpty) {
+            // Belum ada dokumen hari ini
             progress = 0f
         } else {
             val doc = snapshot.documents[0]
-            val fields = listOf("misi_rokok", "misi_aktivitas", "tidur", "air")
+
+            // daftar field misi
+            val fields = listOf("misi_rokok", "misi_aktivitas", "misi_tidur", "misi_air")
+
+            // hitung berapa true
             val completed = fields.count { doc.getBoolean(it) == true }
+
+            // 1 field = 25%
             progress = completed * 0.25f
         }
         isLoading = false
     }
 
     if (isLoading) {
-        CircularProgressIndicator(color = Color(0xFFC15F56))
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = Color(0xFFC15F56))
+        }
     } else {
         DailyMissionProgress(progress)
     }
@@ -283,9 +292,7 @@ fun BottomNavigationBar() {
     var selectedIndex by remember { mutableStateOf(0) }
     val context = LocalContext.current
 
-    NavigationBar(
-        containerColor = Color.White
-    ) {
+    NavigationBar(containerColor = Color.White) {
         listOf("Home", "Riwayat", "Profile").forEachIndexed { index, label ->
             val isSelected = selectedIndex == index
             val iconRes = when (index) {
@@ -306,9 +313,10 @@ fun BottomNavigationBar() {
                     }
                 },
                 icon = {
-                    Image(
+                    Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = label,
+                        tint = if (isSelected) Color.White else Color.Gray,
                         modifier = Modifier.size(24.dp)
                     )
                 },
@@ -316,9 +324,16 @@ fun BottomNavigationBar() {
                     Text(
                         label,
                         fontSize = 10.sp,
-                        color = if (isSelected) Color(0xFFC15F56) else Color.Gray
+                        color = Color.Gray // ✅ selalu abu-abu
                     )
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color(0xFFC15F56), // background merah saat dipilih
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.Gray,     // ✅ tetap abu-abu walau selected
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
         }
     }

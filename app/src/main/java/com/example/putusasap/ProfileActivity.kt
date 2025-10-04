@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.tasks.await
 
 class ProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +36,73 @@ class ProfileActivity : ComponentActivity() {
 @Composable
 fun ProfileScreen() {
     val context = LocalContext.current
+    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+
+    var totalSaving by remember { mutableStateOf(0f) }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+
+    // ✅ Ambil name & email dari Firestore
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            try {
+                val userDoc = db.collection("users").document(uid).get().await()
+                name = userDoc.getString("name") ?: "Nama Tidak Diketahui"
+                email = userDoc.getString("email") ?: "Email Tidak Diketahui"
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // ✅ Ambil data dari Firestore & hitung total saving
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+            try {
+                // 🔹 Ambil data user
+                val userDoc = db.collection("users").document(uid).get().await()
+                val cigarettePrice = userDoc.getDouble("cigarettePrice") ?: 0.0
+                val sticksPerDay = userDoc.getDouble("sticksPerDay") ?: 0.0
+                val sticksPerPack = userDoc.getDouble("sticksPerPack") ?: 1.0
+
+                val pricePerStick = cigarettePrice / sticksPerPack
+
+                // 🔹 Ambil semua misi milik user
+                val misiDocs = db.collection("misi")
+                    .whereEqualTo("uid", uid)
+                    .get().await()
+
+                var savingAcc = 0.0
+                for (doc in misiDocs.documents) {
+                    val misiRokok = doc.getBoolean("misi_rokok") ?: false
+                    if (misiRokok) {
+                        val konsumsi = doc.getDouble("konsumsi_rokok") ?: sticksPerDay
+                        if (konsumsi < sticksPerDay) {
+                            val hematHariIni = (sticksPerDay - konsumsi) * pricePerStick
+                            savingAcc += hematHariIni
+                        }
+                    }
+                }
+
+                totalSaving = savingAcc.toFloat()
+
+                // ✅ Simpan totalSaving ke users/{uid}
+                db.collection("users")
+                    .document(uid)
+                    .update("totalSaving", savingAcc)
+                    .addOnFailureListener { e ->
+                        Toast.makeText(context, "Gagal update saving: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = { BottomNavigationBarProfile() }
@@ -44,14 +113,13 @@ fun ProfileScreen() {
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🔹 Header background
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.bg_header_profile), // gambar hiasanmu
+                    painter = painterResource(id = R.drawable.bg_header_profile),
                     contentDescription = "Header",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -86,15 +154,15 @@ fun ProfileScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 🔹 Nama & email
+            // 🔹 Nama & email (dari Firestore)
             Text(
-                text = "Leryna Ramadhani",
+                text = name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "lerynaramadhani@gmail.com",
+                text = email,
                 color = Color(0xFFB97169),
                 fontSize = 14.sp,
                 modifier = Modifier
@@ -104,7 +172,6 @@ fun ProfileScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🔹 Card menu
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -115,16 +182,15 @@ fun ProfileScreen() {
                 ProfileMenuItem(
                     icon = R.drawable.ic_edit,
                     title = "Edit Profil"
-                ) {
-                    // intent ke EditProfileActivity
-                }
+                ) { }
 
                 Divider(color = Color.Gray.copy(alpha = 0.2f))
 
+                // ✅ tampilkan total saving
                 ProfileMenuItem(
                     icon = R.drawable.ic_money,
                     title = "Total Penghematan Uang",
-                    subtitle = "Rp.100.000,00"
+                    subtitle = "Rp ${"%,.0f".format(totalSaving)}"
                 ) { }
 
                 Divider(color = Color.Gray.copy(alpha = 0.2f))
@@ -141,9 +207,7 @@ fun ProfileScreen() {
                     icon = R.drawable.ic_logout,
                     title = "Keluar",
                     titleColor = Color(0xFFC15F56)
-                ) {
-                    // logout action
-                }
+                ) { }
             }
         }
     }
@@ -186,7 +250,8 @@ fun ProfileMenuItem(
 
 @Composable
 fun BottomNavigationBarProfile() {
-    var selectedIndex by remember { mutableStateOf(2) } // default ke Profile
+    var selectedIndex by remember { mutableStateOf(2) } // default = Riwayat
+    val context = LocalContext.current
 
     NavigationBar(containerColor = Color.White) {
         listOf("Home", "Riwayat", "Profile").forEachIndexed { index, label ->
@@ -200,11 +265,19 @@ fun BottomNavigationBarProfile() {
 
             NavigationBarItem(
                 selected = isSelected,
-                onClick = { selectedIndex = index },
+                onClick = {
+                    selectedIndex = index
+                    when (index) {
+                        0 -> context.startActivity(Intent(context, MainActivity::class.java))
+                        1 -> context.startActivity(Intent(context, RiwayatActivity::class.java))
+                        2 -> context.startActivity(Intent(context, ProfileActivity::class.java))
+                    }
+                },
                 icon = {
-                    Image(
+                    Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = label,
+                        tint = if (isSelected) Color.White else Color.Gray,
                         modifier = Modifier.size(24.dp)
                     )
                 },
@@ -212,9 +285,16 @@ fun BottomNavigationBarProfile() {
                     Text(
                         label,
                         fontSize = 10.sp,
-                        color = if (isSelected) Color(0xFFC15F56) else Color.Gray
+                        color = Color.Gray // ✅ selalu abu-abu
                     )
-                }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = Color(0xFFC15F56), // background merah saat dipilih
+                    selectedIconColor = Color.White,
+                    selectedTextColor = Color.Gray,     // ✅ tetap abu-abu walau selected
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
+                )
             )
         }
     }

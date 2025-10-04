@@ -48,10 +48,15 @@ class SmokeInfoActivity : ComponentActivity() {
             return
         }
 
+        // ✅ Konversi String ke Number (Double / Long)
+        val cigarettePrice = price.toDoubleOrNull() ?: 0.0
+        val sticksPack = sticksPerPack.toIntOrNull() ?: 0
+        val sticksDay = sticksPerDay.toIntOrNull() ?: 0
+
         val updates = mapOf(
-            "cigarettePrice" to price,
-            "sticksPerPack" to sticksPerPack,
-            "sticksPerDay" to sticksPerDay
+            "cigarettePrice" to cigarettePrice, // disimpan sebagai Number
+            "sticksPerPack" to sticksPack,      // disimpan sebagai Number
+            "sticksPerDay" to sticksDay         // disimpan sebagai Number
         )
 
         firestore.collection("users")
@@ -60,7 +65,6 @@ class SmokeInfoActivity : ComponentActivity() {
             .addOnSuccessListener {
                 Toast.makeText(this, "Data berhasil disimpan", Toast.LENGTH_SHORT).show()
 
-                // ✅ Intent ke WelcomeScreenActivity
                 startActivity(Intent(this, WelcomeScreenActivity::class.java))
                 finish()
             }
@@ -68,7 +72,6 @@ class SmokeInfoActivity : ComponentActivity() {
                 Toast.makeText(this, "Gagal simpan data: ${e.message}", Toast.LENGTH_LONG).show()
             }
     }
-
 }
 
 private val GradientRed = Brush.verticalGradient(

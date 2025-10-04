@@ -206,12 +206,7 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
             // --- ASMA & PERNAPASAN
             SectionTitle("Data Pernapasan")
             SmokingStatusDropdown(selected = smokingStatus, onSelect = { smokingStatus = it })
-            OutlinedTextField(
-                value = medication,
-                onValueChange = { medication = it },
-                label = { RequiredLabel("Medication") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            MedicationDropdown(selected = medication, onSelect = { medication = it })
             OutlinedTextField(
                 value = peakFlow,
                 onValueChange = { peakFlow = it.filter(Char::isDigit) },
@@ -327,7 +322,7 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
 
                             probCardio = outputBuffer[0][0]
                             kategoriCardio =
-                                if (probCardio > 0.5f) "Risiko Tinggi Cardio" else "Risiko Rendah Cardio"
+                                if (probCardio > 0.5f) "Tinggi" else "Risiko Rendah Cardio"
 
                         } catch (e: Exception) {
                             Toast.makeText(context, "Error ML (Cardio): ${e.message}", Toast.LENGTH_LONG).show()
@@ -338,7 +333,7 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                     try {
                         val interpreter = Interpreter(loadModelFile(context, "lung_disease_model.tflite"))
 
-                        val input = FloatArray(22)
+                        val input = FloatArray(23)
                         var idx = 0
                         input[idx++] = age.toFloatOrNull() ?: 0f
                         input[idx++] = if (gender == "Male") 2f else 1f
@@ -429,12 +424,17 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         .addOnFailureListener { e ->
                             Toast.makeText(context, "Gagal simpan: ${e.message}", Toast.LENGTH_LONG).show()
                         }
+                    val intent = Intent(context, HasilDeteksiActivity::class.java)
+                    context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = mandatoryFilled,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56))
             ) {
-                Text("Lihat Hasil")
+                Text(
+                    text = "Lihat Hasil",
+                    color = Color.White // ✅ teks putih
+                )
             }
             Spacer(Modifier.height(32.dp))
         }
@@ -592,6 +592,51 @@ fun SmokingStatusDropdown(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MedicationDropdown(
+    selected: String,
+    onSelect: (String) -> Unit
+) {
+    val options = listOf(
+        "None" to "Tidak Ada",
+        "Inhaler" to "Inhaler",
+        "Controller Medication" to "Obat Pengontrol"
+    )
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = options.find { it.first == selected }?.second ?: "",
+            onValueChange = { },
+            readOnly = true,
+            label = { Text("Medication *") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { (eng, ind) ->
+                DropdownMenuItem(
+                    text = { Text(ind) }, // tampilkan versi Indonesia
+                    onClick = {
+                        onSelect(eng) // simpan versi Inggris
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 // Load model TFLite
 fun loadModelFile(context: Context, modelName: String): MappedByteBuffer {
     val fileDescriptor = context.assets.openFd(modelName)
@@ -623,7 +668,10 @@ fun encodeSmoking(smokingStatus: String): FloatArray =
 
 fun encodeMedication(med: String): FloatArray =
     when (med) {
-        "Inhaler" -> floatArrayOf(0f, 1f)
-        else -> floatArrayOf(1f, 0f) // None/default
+        "None" -> floatArrayOf(1f, 0f, 0f)
+        "Inhaler" -> floatArrayOf(0f, 1f, 0f)
+        "Controller Medication" -> floatArrayOf(0f, 0f, 1f)
+        else -> floatArrayOf(1f, 0f, 0f) // default ke None
     }
+
 

@@ -80,7 +80,7 @@ private fun SplashContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 100.dp), // geser semua ke atas, atur sesuai selera
+                .padding(top = 200.dp), // geser semua ke atas, atur sesuai selera
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
