@@ -207,7 +207,17 @@ fun ProfileScreen() {
                     icon = R.drawable.ic_logout,
                     title = "Keluar",
                     titleColor = Color(0xFFC15F56)
-                ) { }
+                ) {
+                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                    auth.signOut() // 🔹 Logout user
+
+                    Toast.makeText(context, "Berhasil keluar", Toast.LENGTH_SHORT).show()
+
+                    // 🔹 Arahkan ke LoginActivity, dan clear activity stack
+                    val intent = Intent(context, LoginActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    context.startActivity(intent)
+                }
             }
         }
     }

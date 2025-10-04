@@ -177,20 +177,35 @@ fun MainScreen(userName: String) {
             Text("Informasi:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
             // ✅ Satu gambar satu row, lebar penuh, background putih
-            InfoImage(image = R.drawable.img_info1)
-            InfoImage(image = R.drawable.img_info2)
-            InfoImage(image = R.drawable.img_info3)
+            InfoImage(
+                image = R.drawable.img_info1,
+                activity = ArtikelParuActivity::class.java
+            )
+            InfoImage(
+                image = R.drawable.img_info2,
+                activity = ArtikelPpokActivity::class.java
+            )
+            InfoImage(
+                image = R.drawable.img_info3,
+                activity = ArtikelJantungActivity::class.java
+            )
         }
     }
 }
 
 @Composable
-fun InfoImage(image: Int) {
+fun InfoImage(image: Int, activity: Class<*>) {
+    val context = LocalContext.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
             .padding(vertical = 0.dp)
+            .clickable {
+                val intent = Intent(context, activity)
+                context.startActivity(intent)
+            }
     ) {
         Image(
             painter = painterResource(id = image),
