@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -23,8 +24,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -142,12 +145,7 @@ fun RiwayatScreen() {
                         .size(75.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_notification),
-                        contentDescription = "Notifikasi",
-                        tint = Color.Unspecified,
-                        modifier = Modifier.fillMaxSize() // isi box
-                    )
+                    NotificationWithBadge()
                 }
             }
 
@@ -333,3 +331,76 @@ data class RiwayatDeteksi(
     val resikoAsthma: String,
     val resikoCardio: String
 )
+
+@Composable
+fun NotificationWithBadgeHistory() {
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+    val db = FirebaseFirestore.getInstance()
+
+    var streak by remember { mutableStateOf(0) }
+
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            streak = calculateStreakHistory(uid, db)
+        }
+    }
+
+    Box {
+        // Icon notifikasi
+        NotificationWithBadgeHistory()
+
+        if (streak > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp) // geser biar nempel pojok
+                    .size(20.dp)
+                    .background(Color.Red, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = streak.toString(),
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// 🔹 Fungsi hitung streak
+suspend fun calculateStreakHistory(uid: String, db: FirebaseFirestore): Int {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    var streak = 0
+
+    // Loop mundur dari hari ini
+    for (i in 0..30) { // max cek 30 hari ke belakang
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -i)
+        val dateStr = dateFormat.format(cal.time)
+
+        val snapshot = db.collection("misi")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("tanggal", dateStr)
+            .get()
+            .await()
+
+        if (snapshot.isEmpty) {
+            break
+        } else {
+            val doc = snapshot.documents[0]
+            val allTrue = (doc.getBoolean("misi_aktivitas") == true &&
+                    doc.getBoolean("misi_rokok") == true &&
+                    doc.getBoolean("misi_tidur") == true &&
+                    doc.getBoolean("misi_air") == true)
+            if (allTrue) {
+                streak++
+            } else {
+                break
+            }
+        }
+    }
+    return streak
+}

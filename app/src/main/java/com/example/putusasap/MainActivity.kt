@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -87,12 +88,7 @@ fun MainScreen(userName: String) {
                         color = Color(0xFFC15F56) // ✅ pakai warna merah khas aplikasi
                     )
                 }
-
-                Image(
-                    painter = painterResource(id = R.drawable.ic_notification),
-                    contentDescription = "Notifikasi",
-                    modifier = Modifier.size(75.dp) // sedikit lebih besar
-                )
+                NotificationWithBadge()
             }
 
             Spacer(Modifier.height(16.dp))
@@ -420,4 +416,80 @@ fun InfoCard(title: String, image: Int) {
             )
         }
     }
+}
+@Composable
+fun NotificationWithBadge() {
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+    val db = FirebaseFirestore.getInstance()
+
+    var streak by remember { mutableStateOf(0) }
+
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            streak = calculateStreak(uid, db)
+        }
+    }
+
+    Box {
+        // Icon notifikasi
+        Image(
+            painter = painterResource(id = R.drawable.ic_notification),
+            contentDescription = "Notifikasi",
+            modifier = Modifier.size(50.dp)
+        )
+
+        if (streak > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp) // geser biar nempel pojok
+                    .size(20.dp)
+                    .background(Color.Red, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = streak.toString(),
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// 🔹 Fungsi hitung streak
+suspend fun calculateStreak(uid: String, db: FirebaseFirestore): Int {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    var streak = 0
+
+    // Loop mundur dari hari ini
+    for (i in 0..30) { // max cek 30 hari ke belakang
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -i)
+        val dateStr = dateFormat.format(cal.time)
+
+        val snapshot = db.collection("misi")
+            .whereEqualTo("uid", uid)
+            .whereEqualTo("tanggal", dateStr)
+            .get()
+            .await()
+
+        if (snapshot.isEmpty) {
+            break
+        } else {
+            val doc = snapshot.documents[0]
+            val allTrue = (doc.getBoolean("misi_aktivitas") == true &&
+                    doc.getBoolean("misi_rokok") == true &&
+                    doc.getBoolean("misi_tidur") == true &&
+                    doc.getBoolean("misi_air") == true)
+            if (allTrue) {
+                streak++
+            } else {
+                break
+            }
+        }
+    }
+    return streak
 }
