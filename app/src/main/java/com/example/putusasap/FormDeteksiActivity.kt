@@ -46,8 +46,12 @@ class FormDeteksiActivity : ComponentActivity() {
                 FormDeteksiScreen(
                     onBack = { finish() },
                     onSubmit = { dataMap ->
-                        Toast.makeText(this, "Hasil siap — data terisi", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this, com.example.putusasap.MainActivity::class.java))
+                        // Ambil hasil dari dataMap kalau diperlukan
+                        val intent = Intent(this, com.example.putusasap.HasilDeteksiActivity::class.java)
+                        intent.putExtra("resiko_lung", dataMap["resiko_lung"].toString())
+                        intent.putExtra("resiko_asthma", dataMap["resiko_asthma"].toString())
+                        intent.putExtra("resiko_cardio", dataMap["resiko_cardio"].toString())
+                        startActivity(intent)
                         finish()
                     }
                 )
@@ -366,9 +370,9 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         val result = outputBuffer[0]
                         val maxIdx = result.indices.maxByOrNull { result[it] } ?: 0
                         kategoriLung = when (maxIdx) {
-                            0 -> "Low"
-                            1 -> "Medium"
-                            else -> "High"
+                            0 -> "Rendah"
+                            1 -> "Sedang"
+                            else -> "Tinggi"
                         }
 
                     } catch (e: Exception) {
@@ -424,8 +428,6 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         .addOnFailureListener { e ->
                             Toast.makeText(context, "Gagal simpan: ${e.message}", Toast.LENGTH_LONG).show()
                         }
-                    val intent = Intent(context, HasilDeteksiActivity::class.java)
-                    context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = mandatoryFilled,
@@ -668,10 +670,6 @@ fun encodeSmoking(smokingStatus: String): FloatArray =
 
 fun encodeMedication(med: String): FloatArray =
     when (med) {
-        "None" -> floatArrayOf(1f, 0f, 0f)
-        "Inhaler" -> floatArrayOf(0f, 1f, 0f)
-        "Controller Medication" -> floatArrayOf(0f, 0f, 1f)
-        else -> floatArrayOf(1f, 0f, 0f) // default ke None
+        "Inhaler" -> floatArrayOf(0f, 1f)
+        else -> floatArrayOf(1f, 0f) // None/default
     }
-
-

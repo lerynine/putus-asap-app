@@ -24,11 +24,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class SayaSakauActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,9 +45,31 @@ class SayaSakauActivity : ComponentActivity() {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun SayasakauScreen(userName: String = "User") {
+fun SayasakauScreen() {
     val context = LocalContext.current
     var currentStep by remember { mutableStateOf(1) }
+
+    // 🔹 State untuk username
+    var userName by remember { mutableStateOf("User") }
+
+    // 🔹 Ambil UID user login
+    val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+    // 🔹 Ambil username dari Firestore berdasarkan UID
+    LaunchedEffect(uid) {
+        uid?.let {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(it)
+                .get()
+                .addOnSuccessListener { doc ->
+                    userName = doc.getString("name") ?: "User"
+                }
+                .addOnFailureListener {
+                    userName = "User"
+                }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -55,13 +81,13 @@ fun SayasakauScreen(userName: String = "User") {
             )
             .padding(16.dp)
     ) {
-        // Tombol Back
+        // 🔙 Tombol Back
         IconButton(
             onClick = {
                 if (currentStep == 1) {
                     context.startActivity(Intent(context, MainActivity::class.java))
                 } else {
-                    currentStep = currentStep - 1
+                    currentStep--
                 }
             },
             modifier = Modifier.align(Alignment.TopStart)
@@ -69,11 +95,11 @@ fun SayasakauScreen(userName: String = "User") {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Back",
-                tint = Color(0xFFC15F56)
+                tint = Color.Black
             )
         }
 
-        // Konten dengan animasi
+        // 🔹 Konten dengan animasi transisi antar-step
         AnimatedContent(
             targetState = currentStep,
             transitionSpec = {
@@ -93,9 +119,12 @@ fun SayasakauScreen(userName: String = "User") {
                 8 -> StretchingStep7(onNext = { currentStep = 9 })
                 9 -> MinumAir(onNext = { currentStep = 10 })
                 10 -> MakanPermen(onNext = { currentStep = 11 })
-                11 -> ClosingStep(userName = userName, onFinish = {
-                    context.startActivity(Intent(context, MainActivity::class.java))
-                })
+                11 -> ClosingStep(
+                    userName = userName,
+                    onFinish = {
+                        context.startActivity(Intent(context, MainActivity::class.java))
+                    }
+                )
             }
         }
     }
@@ -117,6 +146,7 @@ fun StretchingStep1(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
@@ -125,8 +155,10 @@ fun StretchingStep1(onNext: () -> Unit) {
             painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -184,16 +216,19 @@ fun StretchingStep2(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // pakai gambar bahu kalau ada
-            contentDescription = "Ilustrasi Stretching Bahu",
+            painter = painterResource(id = R.drawable.img_stretching),
+            contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -251,16 +286,19 @@ fun StretchingStep3(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -296,7 +334,7 @@ fun StretchingStep3(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -317,16 +355,19 @@ fun StretchingStep4(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -362,7 +403,7 @@ fun StretchingStep4(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -383,16 +424,19 @@ fun StretchingStep5(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -429,7 +473,7 @@ fun StretchingStep5(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -450,16 +494,19 @@ fun StretchingStep6(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -496,7 +543,7 @@ fun StretchingStep6(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -517,16 +564,19 @@ fun StretchingStep7(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_stretching), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_stretching),
             contentDescription = "Ilustrasi Stretching",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -562,7 +612,7 @@ fun StretchingStep7(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -583,6 +633,7 @@ fun MinumAir(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
@@ -591,8 +642,10 @@ fun MinumAir(onNext: () -> Unit) {
             painter = painterResource(id = R.drawable.img_air), // ganti sesuai aset
             contentDescription = "Ilustrasi Air",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(300.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -627,7 +680,7 @@ fun MinumAir(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -648,6 +701,7 @@ fun MakanPermen(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
@@ -656,8 +710,10 @@ fun MakanPermen(onNext: () -> Unit) {
             painter = painterResource(id = R.drawable.img_permen), // ganti sesuai aset
             contentDescription = "Ilustrasi Permen",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(300.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(
@@ -692,7 +748,7 @@ fun MakanPermen(onNext: () -> Unit) {
                 contentColor = Color.White
             )
         ) {
-            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Selanjutnya", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -702,11 +758,16 @@ fun ClosingStep(userName: String, onFinish: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column {
+        Column(
+            horizontalAlignment = Alignment.Start, // judul rata kiri
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Spacer(modifier = Modifier.height(40.dp))
+
             Text(
                 text = "Hai, $userName!",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -719,7 +780,7 @@ fun ClosingStep(userName: String, onFinish: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium.copy(color = Color.Black)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -727,34 +788,52 @@ fun ClosingStep(userName: String, onFinish: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(16.dp)
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp) // padding atas dikurangi, bawah 0
+                        .fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(bottom = 20.dp) // hapus jarak bawah
+                    ) {
                         Text(
                             text = "Setiap isapan rokok mengurangi waktumu dengan orang yang kamu cintai. Berhenti sekarang, demi mereka dan dirimu.",
                             color = Color.White,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
+
                     Spacer(modifier = Modifier.width(12.dp))
+
                     Image(
-                        painter = painterResource(id = R.drawable.img_penutup), // ganti sesuai asset
+                        painter = painterResource(id = R.drawable.img_penutup),
                         contentDescription = null,
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier
+                            .size(140.dp)
+                            .align(Alignment.Bottom) // pastikan benar-benar di bawah
+                            .padding(bottom = 0.dp),
+                        contentScale = ContentScale.Fit
                     )
                 }
             }
         }
 
+        Spacer(modifier = Modifier.weight(1f))
+
         Button(
             onClick = onFinish,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56))
+                .height(48.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFC15F56),
+                contentColor = Color.White
+            )
         ) {
-            Text("Selesai", color = Color.White)
+            Text("Selesai", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -775,6 +854,7 @@ fun BreathingStep(onNext: () -> Unit) {
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp),
             lineHeight = 32.sp
         )
@@ -783,8 +863,10 @@ fun BreathingStep(onNext: () -> Unit) {
             painter = painterResource(id = R.drawable.img_pernapasan),
             contentDescription = "Ilustrasi Pernapasan",
             modifier = Modifier
-                .height(220.dp)
-                .padding(bottom = 16.dp)
+                .fillMaxWidth()
+                .height(300.dp)
+                .padding(bottom = 16.dp),
+            contentScale = ContentScale.Fit
         )
 
         Text(

@@ -80,7 +80,7 @@ private fun SplashContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 200.dp), // geser semua ke atas, atur sesuai selera
+                .padding(top = 220.dp), // geser semua ke atas, atur sesuai selera
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
@@ -89,11 +89,9 @@ private fun SplashContent(
                 painter = painterResource(id = R.drawable.ic_lungs),
                 contentDescription = "Logo Lungs",
                 modifier = Modifier
-                    .size(160.dp) // bisa disesuaikan, tadinya 200dp
+                    .size(150.dp) // bisa disesuaikan, tadinya 200dp
                     .alpha(logoAlpha)
             )
-
-            Spacer(Modifier.height(24.dp)) // jarak antara logo & tulisan
 
             // Judul PutusAsap
             Image(

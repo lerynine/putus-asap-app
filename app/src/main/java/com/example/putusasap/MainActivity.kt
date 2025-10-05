@@ -178,11 +178,11 @@ fun MainScreen(userName: String) {
                 activity = ArtikelParuActivity::class.java
             )
             InfoImage(
-                image = R.drawable.img_info2,
+                image = R.drawable.img_info3,
                 activity = ArtikelPpokActivity::class.java
             )
             InfoImage(
-                image = R.drawable.img_info3,
+                image = R.drawable.img_info2,
                 activity = ArtikelJantungActivity::class.java
             )
         }
@@ -197,7 +197,6 @@ fun InfoImage(image: Int, activity: Class<*>) {
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(vertical = 0.dp)
             .clickable {
                 val intent = Intent(context, activity)
                 context.startActivity(intent)
@@ -209,7 +208,7 @@ fun InfoImage(image: Int, activity: Class<*>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(155.dp), // tinggi seragam
-            contentScale = ContentScale.Crop
+            contentScale = ContentScale.Fit
         )
     }
 }
@@ -417,6 +416,7 @@ fun InfoCard(title: String, image: Int) {
         }
     }
 }
+
 @Composable
 fun NotificationWithBadge() {
     val auth = FirebaseAuth.getInstance()

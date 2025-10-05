@@ -45,12 +45,12 @@ fun ArtikelPpokScreen() {
     val tabs = listOf("Tentang", "Gejala", "Faktor Risiko")
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 🔹 Header
+        // 🔹 Header merah sama seperti Jantung
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color(0xFFC15F56))
-                .padding(16.dp)
+                .padding(top = 24.dp, bottom = 24.dp, start = 16.dp, end = 16.dp)
         ) {
             IconButton(
                 onClick = { (context as? ComponentActivity)?.finish() },
@@ -63,23 +63,33 @@ fun ArtikelPpokScreen() {
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.Center)
+                    .padding(top = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Mengenal\nPenyakit PPOK",
                     color = Color.White,
-                    fontSize = 22.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 16.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Image(
-                    painter = painterResource(id = R.drawable.img_ppok), // ganti dengan gambar PPOK
+                    painter = painterResource(id = R.drawable.img_ppok),
                     contentDescription = "PPOK",
-                    modifier = Modifier.height(120.dp)
+                    modifier = Modifier
+                        .size(130.dp)
+                        .padding(end = 8.dp)
                 )
             }
         }
@@ -114,12 +124,13 @@ fun ArtikelPpokScreen() {
             }
         }
 
-        // 🔹 Isi Artikel
+        // 🔹 Isi Artikel (background putih)
         Column(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxSize()
+                .background(Color.White)
                 .verticalScroll(scrollState)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 20.dp)
         ) {
             when (selectedTab) {
                 0 -> TentangPpokSection()
@@ -130,51 +141,61 @@ fun ArtikelPpokScreen() {
             Spacer(modifier = Modifier.height(24.dp))
 
             // 🔹 Sumber
-            Text(
-                text = "Sumber: https://www.alodokter.com/penyakit-paru-obstruktif-kronis",
-                color = Color(0xFF1A73E8),
-                fontSize = 14.sp,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://www.alodokter.com/penyakit-paru-obstruktif-kronis")
-                    )
-                    context.startActivity(intent)
-                }
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.alodokter.com/penyakit-paru-obstruktif-kronis")
+                        )
+                        context.startActivity(intent)
+                    }
+                    .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp)
+            ) {
+                Text(
+                    text = "Sumber: ",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Alodokter (2024)",
+                    color = Color(0xFF1A73E8),
+                    fontSize = 14.sp,
+                    textDecoration = TextDecoration.Underline
+                )
+            }
         }
     }
 }
 
+// 🔹 Bagian isi artikel — disesuaikan gaya Jantung
 @Composable
 fun TentangPpokSection() {
-    Column {
-        Text(
-            text = "Penyakit Paru Obstruktif Kronik (PPOK) adalah kondisi gangguan pernapasan jangka panjang yang ditandai dengan aliran udara yang terhambat di paru-paru, sehingga menyebabkan kesulitan bernapas. Dua kondisi utama yang paling sering berkembang menjadi PPOK adalah bronkitis kronis dan emfisema.\n\n" +
-                    "Pada bronkitis kronis, kerusakan terjadi pada saluran pernapasan atau bronkus yang menyebabkan peradangan dan produksi lendir berlebih. Sementara itu, pada emfisema, kerusakan terjadi pada kantung udara paru-paru atau alveolus, yang menyebabkan berkurangnya kemampuan paru-paru dalam menyerap oksigen.\n\n" +
-                    "Kebiasaan merokok, baik sebagai perokok aktif maupun pasif, merupakan penyebab utama PPOK. Selain itu, paparan polusi udara seperti asap kendaraan, debu jalanan, dan emisi industri yang terjadi secara terus-menerus juga dapat memicu PPOK.\n\n" +
-                    "Risiko PPOK juga meningkat pada orang yang memiliki riwayat asma, tuberkulosis, atau infeksi HIV. Faktor genetik seperti kekurangan protein alpha-1-antitrypsin (AAt), serta riwayat PPOK dalam keluarga, turut memperbesar kemungkinan seseorang terkena penyakit ini.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
+    Text(
+        text = "Penyakit Paru Obstruktif Kronik (PPOK) adalah gangguan pernapasan jangka panjang yang ditandai oleh hambatan aliran udara di paru-paru. Dua kondisi utama penyebab PPOK adalah bronkitis kronis dan emfisema.\n\n" +
+                "Bronkitis kronis menyebabkan peradangan pada saluran napas dan produksi lendir berlebih, sementara emfisema menyebabkan kerusakan pada kantung udara paru (alveolus) yang menurunkan kemampuan paru menyerap oksigen.\n\n" +
+                "Penyebab utama PPOK adalah kebiasaan merokok, baik aktif maupun pasif. Faktor lain meliputi paparan polusi udara, asap industri, debu, serta faktor genetik seperti kekurangan protein alpha-1-antitrypsin.",
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
 }
 
 @Composable
 fun GejalaPpokSection() {
     val gejala = listOf(
-        "Mengalami kesulitan bernapas, terutama saat melakukan aktivitas fisik.",
-        "Munculnya suara mengi atau napas berbunyi seperti siulan saat menghembuskan napas.",
-        "Timbul rasa sesak di dada.",
-        "Batuk kronis yang berlangsung lama, disertai dahak berwarna putih, kuning, hingga kehijauan.",
-        "Tampak perubahan warna pada bibir atau ujung kuku menjadi kebiruan.",
-        "Sering mengalami infeksi saluran pernapasan.",
-        "Merasa kelelahan berlebihan meskipun tidak melakukan aktivitas berat.",
-        "Mengalami penurunan berat badan drastis tanpa sebab.",
-        "Terjadi pembengkakan pada kaki, pergelangan kaki, atau tungkai kaki.",
-        "Linglung dan sulit berkonsentrasi."
+        "Kesulitan bernapas, terutama saat beraktivitas",
+        "Suara mengi atau napas berbunyi",
+        "Sesak di dada",
+        "Batuk kronis disertai dahak",
+        "Perubahan warna bibir atau kuku menjadi kebiruan",
+        "Sering mengalami infeksi saluran napas",
+        "Kelelahan tanpa sebab jelas",
+        "Penurunan berat badan tanpa sebab",
+        "Pembengkakan pada kaki atau pergelangan",
+        "Linglung atau sulit berkonsentrasi"
     )
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         gejala.forEach {
             Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
         }
@@ -184,14 +205,15 @@ fun GejalaPpokSection() {
 @Composable
 fun RisikoPpokSection() {
     val risiko = listOf(
-        "Paparan jangka panjang terhadap asap rokok, baik sebagai perokok aktif maupun perokok pasif.",
-        "Kebiasaan merokok pada individu yang memiliki riwayat penyakit asma.",
-        "Terpapar debu industri atau bahan kimia berbahaya secara terus-menerus.",
-        "Paparan asap dari pembakaran.",
-        "Faktor usia lanjut.",
-        "Faktor genetik."
+        "Paparan jangka panjang terhadap asap rokok",
+        "Perokok aktif atau pasif",
+        "Paparan debu industri atau bahan kimia",
+        "Paparan asap dari pembakaran bahan bakar padat",
+        "Riwayat asma atau tuberkulosis",
+        "Faktor genetik (kekurangan alpha-1-antitrypsin)",
+        "Usia lanjut"
     )
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         risiko.forEach {
             Text("• $it", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 2.dp))
         }

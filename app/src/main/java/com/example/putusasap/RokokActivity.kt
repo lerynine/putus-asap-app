@@ -143,15 +143,22 @@ fun RokokScreen(onBackClick: () -> Unit) {
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Tombol Kurangi
                         OutlinedButton(
                             onClick = { if (konsumsiHariIni > 0) konsumsiHariIni-- },
                             shape = CircleShape,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFC15F56) // warna ikon
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = Brush.linearGradient(listOf(Color(0xFFC15F56), Color(0xFFC15F56)))
+                            ),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_minus),
                                 contentDescription = "Kurangi",
-                                tint = Color(0xFFC15F56)
+                                tint = Color(0xFFC15F56) // warna ikon minus
                             )
                         }
 
@@ -161,15 +168,22 @@ fun RokokScreen(onBackClick: () -> Unit) {
                             style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         )
 
+                        // Tombol Tambah
                         OutlinedButton(
                             onClick = { if (konsumsiHariIni < batasHarian) konsumsiHariIni++ },
                             shape = CircleShape,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFFC15F56)
+                            ),
+                            border = ButtonDefaults.outlinedButtonBorder.copy(
+                                brush = Brush.linearGradient(listOf(Color(0xFFC15F56), Color(0xFFC15F56)))
+                            ),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Tambah",
-                                tint = Color(0xFFC15F56)
+                                tint = Color(0xFFC15F56) // warna ikon plus
                             )
                         }
                     }
