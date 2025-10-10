@@ -240,7 +240,6 @@ fun RiwayatScreen() {
 
                 Spacer(Modifier.height(8.dp))
 
-                // ✅ Tampilkan data riwayat lengkap
                 riwayat.forEach { data ->
                     Card(
                         modifier = Modifier
@@ -262,9 +261,21 @@ fun RiwayatScreen() {
                             )
                             Spacer(Modifier.height(4.dp))
                             Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Resiko Kanker Paru: ${data.resikoLung}", fontSize = 13.sp)
-                            Text("Resiko Asma: ${data.resikoAsthma}", fontSize = 13.sp)
-                            Text("Resiko Penyakit Jantung: ${data.resikoCardio}", fontSize = 13.sp)
+                            Text(
+                                text = "Resiko Kanker Paru: ${if (data.resikoLung == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoLung}",
+                                fontSize = 13.sp,
+                                color = if (data.resikoLung == "Data tidak lengkap") Color.Gray else Color.Black
+                            )
+                            Text(
+                                text = "Resiko Asma: ${if (data.resikoAsthma == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoAsthma}",
+                                fontSize = 13.sp,
+                                color = if (data.resikoAsthma == "Data tidak lengkap") Color.Gray else Color.Black
+                            )
+                            Text(
+                                text = "Resiko Penyakit Jantung: ${if (data.resikoCardio == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoCardio}",
+                                fontSize = 13.sp,
+                                color = if (data.resikoCardio == "Data tidak lengkap") Color.Gray else Color.Black
+                            )
                         }
                     }
                 }

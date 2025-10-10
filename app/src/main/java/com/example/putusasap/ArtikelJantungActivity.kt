@@ -84,7 +84,6 @@ fun ArtikelJantungScreen() {
                         .padding(start = 16.dp) // 🔹 padding kiri tambahan
                 )
 
-
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Image(
@@ -171,6 +170,7 @@ fun ArtikelJantungScreen() {
         }
     }
 }
+
 @Composable
 fun TentangJantungSection() {
     Text(

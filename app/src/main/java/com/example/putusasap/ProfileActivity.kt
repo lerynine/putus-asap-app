@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,12 +39,25 @@ fun ProfileScreen() {
     val context = LocalContext.current
     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid
+    val user = auth.currentUser
 
     var totalSaving by remember { mutableStateOf(0f) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var joinDate by remember { mutableStateOf("Tidak diketahui") }
 
-    // ✅ Ambil name & email dari Firestore
+    // 🔹 Ambil tanggal registrasi dari FirebaseAuth
+    LaunchedEffect(user) {
+        user?.let {
+            val creationTime = it.metadata?.creationTimestamp
+            if (creationTime != null) {
+                val dateFormat = java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale("id", "ID"))
+                joinDate = dateFormat.format(java.util.Date(creationTime))
+            }
+        }
+    }
+
+    // 🔹 Ambil name & email dari Firestore
     LaunchedEffect(uid) {
         if (uid != null) {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -57,24 +71,18 @@ fun ProfileScreen() {
         }
     }
 
-    // ✅ Ambil data dari Firestore & hitung total saving
+    // 🔹 Ambil total saving dari koleksi misi (seperti sebelumnya)
     LaunchedEffect(uid) {
         if (uid != null) {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-
             try {
-                // 🔹 Ambil data user
                 val userDoc = db.collection("users").document(uid).get().await()
                 val cigarettePrice = userDoc.getDouble("cigarettePrice") ?: 0.0
                 val sticksPerDay = userDoc.getDouble("sticksPerDay") ?: 0.0
                 val sticksPerPack = userDoc.getDouble("sticksPerPack") ?: 1.0
 
                 val pricePerStick = cigarettePrice / sticksPerPack
-
-                // 🔹 Ambil semua misi milik user
-                val misiDocs = db.collection("misi")
-                    .whereEqualTo("uid", uid)
-                    .get().await()
+                val misiDocs = db.collection("misi").whereEqualTo("uid", uid).get().await()
 
                 var savingAcc = 0.0
                 for (doc in misiDocs.documents) {
@@ -89,15 +97,8 @@ fun ProfileScreen() {
                 }
 
                 totalSaving = savingAcc.toFloat()
-
-                // ✅ Simpan totalSaving ke users/{uid}
-                db.collection("users")
-                    .document(uid)
+                db.collection("users").document(uid)
                     .update("totalSaving", savingAcc)
-                    .addOnFailureListener { e ->
-                        Toast.makeText(context, "Gagal update saving: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -113,6 +114,7 @@ fun ProfileScreen() {
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 🔹 Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -135,7 +137,7 @@ fun ProfileScreen() {
                 )
             }
 
-            // 🔹 Foto profil bulat
+            // 🔹 Foto profil
             Box(
                 modifier = Modifier
                     .offset(y = (-40).dp)
@@ -145,7 +147,7 @@ fun ProfileScreen() {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_profile_placeholder),
+                    painter = painterResource(id = R.drawable.ic_account),
                     contentDescription = "Profile",
                     tint = Color(0xFFBDBDBD),
                     modifier = Modifier.size(60.dp)
@@ -153,13 +155,7 @@ fun ProfileScreen() {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            // 🔹 Nama & email (dari Firestore)
-            Text(
-                text = name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
+            Text(text = name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = email,
@@ -179,14 +175,32 @@ fun ProfileScreen() {
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFFFFE6E3))
             ) {
+                // 🔹 Ganti: Edit Profil → Ubah Password
                 ProfileMenuItem(
                     icon = R.drawable.ic_edit,
-                    title = "Edit Profil"
-                ) { }
+                    title = "Ubah Password"
+                ) {
+                    auth.currentUser?.email?.let { email ->
+                        auth.sendPasswordResetEmail(email)
+                            .addOnSuccessListener {
+                                Toast.makeText(
+                                    context,
+                                    "Email ubah password telah dikirim ke $email",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(
+                                    context,
+                                    "Gagal mengirim email: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                    }
+                }
 
                 Divider(color = Color.Gray.copy(alpha = 0.2f))
 
-                // ✅ tampilkan total saving
                 ProfileMenuItem(
                     icon = R.drawable.ic_money,
                     title = "Total Penghematan Uang",
@@ -195,11 +209,14 @@ fun ProfileScreen() {
 
                 Divider(color = Color.Gray.copy(alpha = 0.2f))
 
+                // 🔹 Tanggal bergabung — tanpa panah dan tidak bisa diklik
                 ProfileMenuItem(
                     icon = R.drawable.ic_calendar,
                     title = "Tanggal Bergabung",
-                    subtitle = "19 April 2025"
-                ) { }
+                    subtitle = joinDate,
+                    showArrow = false,
+                    onClick = {}
+                )
 
                 Divider(color = Color.Gray.copy(alpha = 0.2f))
 
@@ -208,17 +225,52 @@ fun ProfileScreen() {
                     title = "Keluar",
                     titleColor = Color(0xFFC15F56)
                 ) {
-                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                    auth.signOut() // 🔹 Logout user
-
+                    auth.signOut()
                     Toast.makeText(context, "Berhasil keluar", Toast.LENGTH_SHORT).show()
-
-                    // 🔹 Arahkan ke LoginActivity, dan clear activity stack
                     val intent = Intent(context, LoginActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     context.startActivity(intent)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ProfileMenuItem(
+    icon: Int,
+    title: String,
+    subtitle: String? = null,
+    titleColor: Color = Color.Black,
+    showArrow: Boolean = true,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = showArrow) { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            painter = painterResource(id = icon),
+            contentDescription = title,
+            modifier = Modifier.size(20.dp),
+            tint = if (titleColor != Color.Black) titleColor else Color.Black
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Medium, color = titleColor)
+            if (subtitle != null) {
+                Text(subtitle, fontSize = 12.sp, color = Color.DarkGray)
+            }
+        }
+        if (showArrow) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_arrow_right),
+                contentDescription = "Next",
+                tint = if (titleColor != Color.Black) titleColor else Color.Black
+            )
         }
     }
 }

@@ -284,11 +284,19 @@ fun DailyMissionProgressScreen() {
 fun DailyMissionProgress(progress: Float) {
     Box(contentAlignment = Alignment.Center) {
         CircularProgressIndicator(
+            progress = 1f, // selalu full
+            strokeWidth = 12.dp,
+            color = Color.LightGray.copy(alpha = 0.3f), // warna bayangan
+            modifier = Modifier.size(150.dp)
+        )
+
+        CircularProgressIndicator(
             progress = progress,
             strokeWidth = 12.dp,
             color = Color(0xFFC15F56),
             modifier = Modifier.size(150.dp)
         )
+
         Image(
             painter = painterResource(id = R.drawable.img_person_mission),
             contentDescription = "Mission Person",
