@@ -6,10 +6,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,20 +19,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.putusasap.R
-import kotlin.jvm.java
-
 
 class MisiHarianActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface {
+                // 🔹 Surface putih
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.White
+                ) {
                     MisiHarianScreen(
                         onBack = { finish() },
                         onClickAktivitas = {
@@ -62,100 +66,91 @@ fun MisiHarianScreen(
     onClickAir: () -> Unit,
     onClickIstirahat: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(Color.White) // 🔹 background putih
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         // 🔹 Header
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 16.dp)
         ) {
             IconButton(onClick = { onBack() }) {
                 Icon(
                     imageVector = Icons.Filled.ArrowBack,
-                    contentDescription = "Kembali"
+                    contentDescription = "Kembali",
+                    tint = Color.Black
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Misi Harian",
                 fontSize = 20.sp,
+                color = Color.Black,
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.weight(1f))
             Image(
-                painter = painterResource(id = R.drawable.ic_notification), // ikon paru2 yg kamu siapkan
+                painter = painterResource(id = R.drawable.ic_notification),
                 contentDescription = "Lung Icon",
-                modifier = Modifier.size(75.dp)
+                modifier = Modifier.size(35.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        val context = LocalContext.current
+        // 🔹 Image Buttons Full Width
+        val imageModifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp) // bisa kamu atur sesuai tinggi yang diinginkan
+            .clickable { }
 
         Image(
-            painter = painterResource(id = R.drawable.misi_aktivitas),
+            painter = painterResource(id = R.drawable.misi_dua),
             contentDescription = "Aktivitas Fisik 30 Menit",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .aspectRatio(3f)
-                .clickable {
-                    context.startActivity(
-                        Intent(context, AktivitasActivity::class.java)
-                    )
-                }
+            modifier = imageModifier.clickable {
+                context.startActivity(Intent(context, AktivitasActivity::class.java))
+            },
+            contentScale = ContentScale.FillWidth
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Image(
-            painter = painterResource(id = R.drawable.misi_rokok),
+            painter = painterResource(id = R.drawable.misi_satu),
             contentDescription = "Pelacakan Konsumsi Rokok Harian",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .aspectRatio(3f)
-                .clickable {
-                    context.startActivity(
-                        Intent(context, RokokActivity::class.java)
-                    )
-                }
+            modifier = imageModifier.clickable {
+                context.startActivity(Intent(context, RokokActivity::class.java))
+            },
+            contentScale = ContentScale.FillWidth
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Image(
-            painter = painterResource(id = R.drawable.misi_air),
+            painter = painterResource(id = R.drawable.misi_tiga),
             contentDescription = "Pelacakan Konsumsi Air Harian",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .aspectRatio(3f)
-                .clickable {
-                    context.startActivity(
-                        Intent(context, AirActivity::class.java)
-                    )
-                }
+            modifier = imageModifier.clickable {
+                context.startActivity(Intent(context, AirActivity::class.java))
+            },
+            contentScale = ContentScale.FillWidth
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Image(
-            painter = painterResource(id = R.drawable.misi_istirahat),
+            painter = painterResource(id = R.drawable.misi_empat),
             contentDescription = "Pemantauan Kualitas Istirahat",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .aspectRatio(3f)
-                .clickable {
-                    context.startActivity(
-                        Intent(context, MisiTidurActivity::class.java)
-                    )
-                }
+            modifier = imageModifier.clickable {
+                context.startActivity(Intent(context, MisiTidurActivity::class.java))
+            },
+            contentScale = ContentScale.FillWidth
         )
     }
 }

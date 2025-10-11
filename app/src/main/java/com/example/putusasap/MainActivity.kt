@@ -444,7 +444,7 @@ fun NotificationWithBadge() {
         Image(
             painter = painterResource(id = R.drawable.ic_notification),
             contentDescription = "Notifikasi",
-            modifier = Modifier.size(50.dp)
+            modifier = Modifier.size(35.dp)
         )
 
         if (streak > 0) {

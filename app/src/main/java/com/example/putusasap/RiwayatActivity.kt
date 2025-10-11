@@ -142,7 +142,7 @@ fun RiwayatScreen() {
                 )
                 Box(
                     modifier = Modifier
-                        .size(75.dp),
+                        .size(50.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     NotificationWithBadge()
@@ -261,20 +261,29 @@ fun RiwayatScreen() {
                             )
                             Spacer(Modifier.height(4.dp))
                             Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+
                             Text(
-                                text = "Resiko Kanker Paru: ${if (data.resikoLung == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoLung}",
+                                text = "Resiko Kanker Paru: ${
+                                    if (data.resikoLung == "N/A") "⚠️ Data tidak lengkap" else data.resikoLung
+                                }",
                                 fontSize = 13.sp,
-                                color = if (data.resikoLung == "Data tidak lengkap") Color.Gray else Color.Black
+                                color = if (data.resikoLung == "N/A") Color.Gray else Color.Black
+                            )
+
+                            Text(
+                                text = "Resiko Asma: ${
+                                    if (data.resikoAsthma == "N/A") "⚠️ Data tidak lengkap" else data.resikoAsthma
+                                }",
+                                fontSize = 13.sp,
+                                color = if (data.resikoAsthma == "N/A") Color.Gray else Color.Black
                             )
                             Text(
-                                text = "Resiko Asma: ${if (data.resikoAsthma == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoAsthma}",
+                                text = "Resiko Penyakit Jantung: ${
+                                    if (data.resikoCardio == "N/A") "⚠️ Data tidak lengkap" else data.resikoCardio
+                                }",
                                 fontSize = 13.sp,
-                                color = if (data.resikoAsthma == "Data tidak lengkap") Color.Gray else Color.Black
-                            )
-                            Text(
-                                text = "Resiko Penyakit Jantung: ${if (data.resikoCardio == "Data tidak lengkap") "⚠️ Data tidak lengkap" else data.resikoCardio}",
-                                fontSize = 13.sp,
-                                color = if (data.resikoCardio == "Data tidak lengkap") Color.Gray else Color.Black
+                                color = if (data.resikoCardio == "N/A") Color.Gray else Color.Black
                             )
                         }
                     }

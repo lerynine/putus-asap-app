@@ -71,7 +71,7 @@ fun ProfileScreen() {
         }
     }
 
-    // 🔹 Ambil total saving dari koleksi misi (seperti sebelumnya)
+    // 🔹 Ambil total saving
     LaunchedEffect(uid) {
         if (uid != null) {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -80,25 +80,22 @@ fun ProfileScreen() {
                 val cigarettePrice = userDoc.getDouble("cigarettePrice") ?: 0.0
                 val sticksPerDay = userDoc.getDouble("sticksPerDay") ?: 0.0
                 val sticksPerPack = userDoc.getDouble("sticksPerPack") ?: 1.0
-
                 val pricePerStick = cigarettePrice / sticksPerPack
-                val misiDocs = db.collection("misi").whereEqualTo("uid", uid).get().await()
 
+                val misiDocs = db.collection("misi").whereEqualTo("uid", uid).get().await()
                 var savingAcc = 0.0
                 for (doc in misiDocs.documents) {
                     val misiRokok = doc.getBoolean("misi_rokok") ?: false
                     if (misiRokok) {
                         val konsumsi = doc.getDouble("konsumsi_rokok") ?: sticksPerDay
                         if (konsumsi < sticksPerDay) {
-                            val hematHariIni = (sticksPerDay - konsumsi) * pricePerStick
-                            savingAcc += hematHariIni
+                            savingAcc += (sticksPerDay - konsumsi) * pricePerStick
                         }
                     }
                 }
 
                 totalSaving = savingAcc.toFloat()
-                db.collection("users").document(uid)
-                    .update("totalSaving", savingAcc)
+                db.collection("users").document(uid).update("totalSaving", savingAcc)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -108,130 +105,132 @@ fun ProfileScreen() {
     Scaffold(
         bottomBar = { BottomNavigationBarProfile() }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues)
         ) {
-            // 🔹 Header
-            Box(
+            // 🔹 Header Background
+            Image(
+                painter = painterResource(id = R.drawable.bg_header_profile),
+                contentDescription = "Header",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.bg_header_profile),
-                    contentDescription = "Header",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-                Text(
-                    text = "Profil",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 30.dp)
-                )
-            }
-
-            // 🔹 Foto profil
-            Box(
-                modifier = Modifier
-                    .offset(y = (-40).dp)
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_account),
-                    contentDescription = "Profile",
-                    tint = Color(0xFFBDBDBD),
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = email,
-                color = Color(0xFFB97169),
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .background(Color(0xFFFFE6E3), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .height(450.dp),
+                contentScale = ContentScale.Crop
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFFFE6E3))
+                    .padding(top = 160.dp) // posisi konten mulai setelah header
             ) {
-                // 🔹 Ganti: Edit Profil → Ubah Password
-                ProfileMenuItem(
-                    icon = R.drawable.ic_edit,
-                    title = "Ubah Password"
+                // 🔹 Foto Profil Overlap
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
                 ) {
-                    auth.currentUser?.email?.let { email ->
-                        auth.sendPasswordResetEmail(email)
-                            .addOnSuccessListener {
-                                Toast.makeText(
-                                    context,
-                                    "Email ubah password telah dikirim ke $email",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                            .addOnFailureListener { e ->
-                                Toast.makeText(
-                                    context,
-                                    "Gagal mengirim email: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                    }
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_account),
+                        contentDescription = "Profile",
+                        modifier = Modifier.size(100.dp)
+                    )
                 }
 
-                Divider(color = Color.Gray.copy(alpha = 0.2f))
-
-                ProfileMenuItem(
-                    icon = R.drawable.ic_money,
-                    title = "Total Penghematan Uang",
-                    subtitle = "Rp ${"%,.0f".format(totalSaving)}"
-                ) { }
-
-                Divider(color = Color.Gray.copy(alpha = 0.2f))
-
-                // 🔹 Tanggal bergabung — tanpa panah dan tidak bisa diklik
-                ProfileMenuItem(
-                    icon = R.drawable.ic_calendar,
-                    title = "Tanggal Bergabung",
-                    subtitle = joinDate,
-                    showArrow = false,
-                    onClick = {}
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(
+                    text = email,
+                    color = Color(0xFFB97169),
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .background(Color(0xFFFFE6E3), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
                 )
 
-                Divider(color = Color.Gray.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                ProfileMenuItem(
-                    icon = R.drawable.ic_logout,
-                    title = "Keluar",
-                    titleColor = Color(0xFFC15F56)
+                // 🔹 Box Informasi Akun
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFFFFE6E3))
                 ) {
-                    auth.signOut()
-                    Toast.makeText(context, "Berhasil keluar", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(context, LoginActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    context.startActivity(intent)
+                    ProfileMenuItem(
+                        icon = R.drawable.ic_edit,
+                        title = "Ubah Password"
+                    ) {
+                        auth.currentUser?.email?.let { email ->
+                            auth.sendPasswordResetEmail(email)
+                                .addOnSuccessListener {
+                                    Toast.makeText(
+                                        context,
+                                        "Email ubah password telah dikirim ke $email",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(
+                                        context,
+                                        "Gagal mengirim email: ${e.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                        }
+                    }
+
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+
+                    ProfileMenuItem(
+                        icon = R.drawable.ic_money,
+                        title = "Total Penghematan Uang",
+                        subtitle = "Rp ${"%,.0f".format(totalSaving)}",
+                        showArrow = false,
+                        onClick = {}
+                    )
+
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+
+                    ProfileMenuItem(
+                        icon = R.drawable.ic_calendar,
+                        title = "Tanggal Bergabung",
+                        subtitle = joinDate,
+                        showArrow = false,
+                        onClick = {}
+                    )
+
+                    Divider(color = Color.Gray.copy(alpha = 0.2f))
+
+                    ProfileMenuItem(
+                        icon = R.drawable.ic_logout,
+                        title = "Keluar",
+                        titleColor = Color(0xFFC15F56)
+                    ) {
+                        auth.signOut()
+                        Toast.makeText(context, "Berhasil keluar", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(context, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+                    }
                 }
             }
+
+            // 🔹 Teks "Profil" di atas header
+            Text(
+                text = "Profil",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 40.dp)
+            )
         }
     }
 }

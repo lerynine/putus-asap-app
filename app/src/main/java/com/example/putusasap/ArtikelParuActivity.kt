@@ -157,7 +157,7 @@ fun ArtikelParuScreen() {
                     .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 8.dp) // 🔹 Tambah paddingStart
             )  {
                 Text(
-                    text = "Sumber: ",
+                    text = "Referensi: ",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
