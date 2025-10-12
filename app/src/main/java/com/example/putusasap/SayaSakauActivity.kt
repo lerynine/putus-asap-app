@@ -639,7 +639,7 @@ fun MinumAir(onNext: () -> Unit) {
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_air), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_air),
             contentDescription = "Ilustrasi Air",
             modifier = Modifier
                 .fillMaxWidth()
@@ -648,24 +648,16 @@ fun MinumAir(onNext: () -> Unit) {
             contentScale = ContentScale.Fit
         )
 
+        // 🔹 Teks penjelas tanpa bullet, center horizontal
         Text(
-            text = "Langkah-langkah",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            text = "Untuk membantu tubuh tetap segar dan terhidrasi.",
+            fontSize = 15.sp,
+            color = Color.DarkGray,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
         )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            StepText("Untuk membantu tubuh tetap segar dan terhidrasi.")
-        }
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -707,7 +699,7 @@ fun MakanPermen(onNext: () -> Unit) {
         )
 
         Image(
-            painter = painterResource(id = R.drawable.img_permen), // ganti sesuai aset
+            painter = painterResource(id = R.drawable.img_permen),
             contentDescription = "Ilustrasi Permen",
             modifier = Modifier
                 .fillMaxWidth()
@@ -716,24 +708,16 @@ fun MakanPermen(onNext: () -> Unit) {
             contentScale = ContentScale.Fit
         )
 
+        // 🔹 Teks penjelas tanpa bullet dan center horizontal
         Text(
-            text = "Langkah-langkah",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            text = "Permen dapat membantu mengurangi sensasi mual akibat dari gejala sakau.",
+            fontSize = 15.sp,
+            color = Color.DarkGray,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(horizontal = 24.dp, vertical = 8.dp)
         )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            StepText("Permen dapat membantu mengurangi sensasi\nmual akibat dari gejala sakau")
-        }
 
         Spacer(modifier = Modifier.weight(1f))
 

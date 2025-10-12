@@ -171,7 +171,7 @@ fun ProfileScreen() {
                                 .addOnSuccessListener {
                                     Toast.makeText(
                                         context,
-                                        "Email ubah password telah dikirim ke $email",
+                                        "Silahkan cek inbox email $email",
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -271,41 +271,6 @@ fun ProfileMenuItem(
                 tint = if (titleColor != Color.Black) titleColor else Color.Black
             )
         }
-    }
-}
-
-@Composable
-fun ProfileMenuItem(
-    icon: Int,
-    title: String,
-    subtitle: String? = null,
-    titleColor: Color = Color.Black,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(id = icon),
-            contentDescription = title,
-            modifier = Modifier.size(20.dp),
-            tint = if (titleColor != Color.Black) titleColor else Color.Black
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontWeight = FontWeight.Medium, color = titleColor)
-            if (subtitle != null) {
-                Text(subtitle, fontSize = 12.sp, color = Color.DarkGray)
-            }
-        }
-        Icon(
-            painter = painterResource(id = R.drawable.ic_arrow_right),
-            contentDescription = "Next",
-            tint = if (titleColor != Color.Black) titleColor else Color.Black
-        )
     }
 }
 

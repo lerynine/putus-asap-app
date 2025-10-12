@@ -76,7 +76,7 @@ fun ArtikelJantungScreen() {
                 Text(
                     text = "Mengenal\nPenyakit Kardiovaskular",
                     color = Color.White,
-                    fontSize = 26.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start,
                     modifier = Modifier

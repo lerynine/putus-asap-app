@@ -77,7 +77,7 @@ fun ArtikelParuScreen() {
                 Text(
                     text = "Mengenal\nKanker Paru-Paru",
                     color = Color.White,
-                    fontSize = 26.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Start,
                     modifier = Modifier

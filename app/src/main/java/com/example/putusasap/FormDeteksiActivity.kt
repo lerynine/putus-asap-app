@@ -147,63 +147,77 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
             OutlinedTextField(
                 value = age,
                 onValueChange = { age = it.filter(Char::isDigit) },
-                label = { RequiredLabel("Age (tahun)") },
+                label = { RequiredLabel("Usia (tahun)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+
             OutlinedTextField(
                 value = height,
                 onValueChange = { height = it.filter(Char::isDigit) },
-                label = { RequiredLabel("Height (cm)") },
+                label = { RequiredLabel("Tinggi Badan (cm)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+
             OutlinedTextField(
                 value = weight,
                 onValueChange = { weight = it.filter(Char::isDigit) },
-                label = { RequiredLabel("Weight (kg)") },
+                label = { RequiredLabel("Berat Badan (kg)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
+
             GenderRadioRow(selected = gender, onSelect = { gender = it })
 
             Spacer(Modifier.height(16.dp))
 
             // --- TEKANAN DARAH & JANTUNG
             SectionTitle("Data Tekanan Darah & Jantung")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = apHi,
                     onValueChange = { apHi = it.filter(Char::isDigit) },
-                    label = { Text("Systolic") },
+                    label = { Text("Tekanan Sistolik") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = apLo,
                     onValueChange = { apLo = it.filter(Char::isDigit) },
-                    label = { Text("Diastolic") },
+                    label = { Text("Tekanan Diastolik") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     value = cholesterol,
                     onValueChange = { cholesterol = it.filter(Char::isDigit) },
-                    label = { Text("Cholesterol") },
+                    label = { Text("Kadar Kolesterol") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 OutlinedTextField(
                     value = glucose,
                     onValueChange = { glucose = it.filter(Char::isDigit) },
-                    label = { Text("Glucose") },
+                    label = { Text("Kadar Glukosa") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
-            ToggleRow("Physical activity (aktif/tidak)", physicalActivity) { physicalActivity = it }
+
+            ToggleRow(
+                "Aktivitas Fisik (aktif/tidak)",
+                physicalActivity
+            ) { physicalActivity = it }
 
             Spacer(Modifier.height(16.dp))
 
@@ -214,7 +228,7 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
             OutlinedTextField(
                 value = peakFlow,
                 onValueChange = { peakFlow = it.filter(Char::isDigit) },
-                label = { Text("Peak Flow (opsional)") },
+                label = { Text("Arus Puncak Pernapasan (opsional)") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
@@ -223,35 +237,39 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
 
             // --- FAKTOR RISIKO
             SectionTitle("Faktor Risiko Paru & Gaya Hidup")
-            SliderWithLabel("Air Pollution Exposure", airPollution) { airPollution = it }
-            SliderWithLabel("Alcohol Use (kebiasaan)", riskAlcoholScale) { riskAlcoholScale = it }
-            SliderWithLabel("Occupational Hazards", occupationalHazards) { occupationalHazards = it }
-            SliderWithLabel("Genetic Risk (riwayat keluarga)", geneticRisk) { geneticRisk = it }
-            SliderWithLabel("Balanced Diet", balancedDiet) { balancedDiet = it }
-            SliderWithLabel("Obesity", obesityScale) { obesityScale = it }
-            ToggleRow("Dust Allergy (ada/tidak)", dustAllergyPresent) { dustAllergyPresent = it }
+            SliderWithLabel("Paparan Polusi Udara", airPollution) { airPollution = it }
+            SliderWithLabel("Konsumsi Alkohol (kebiasaan)", riskAlcoholScale) { riskAlcoholScale = it }
+            SliderWithLabel("Bahaya Pekerjaan (lingkungan kerja)", occupationalHazards) { occupationalHazards = it }
+            SliderWithLabel("Risiko Genetik (riwayat keluarga)", geneticRisk) { geneticRisk = it }
+            SliderWithLabel("Pola Makan Seimbang", balancedDiet) { balancedDiet = it }
+            SliderWithLabel("Tingkat Obesitas", obesityScale) { obesityScale = it }
+
+            ToggleRow("Alergi Debu (ada/tidak)", dustAllergyPresent) { dustAllergyPresent = it }
+
             if (dustAllergyPresent) {
-                SliderWithLabel("Dust Allergy Intensity", dustAllergyIntensity) { dustAllergyIntensity = it }
+                SliderWithLabel("Tingkat Keparahan Alergi Debu", dustAllergyIntensity) { dustAllergyIntensity = it }
             }
-            ToggleRow("Chronic Lung Disease (self-report)", chronicLungDisease) { chronicLungDisease = it }
-            ToggleRow("Smoking (habitual)", smokingHabitual) { smokingHabitual = it }
-            ToggleRow("Passive Smoker", passiveSmoker) { passiveSmoker = it }
+
+            ToggleRow("Penyakit Paru Kronis (laporan diri)", chronicLungDisease) { chronicLungDisease = it }
+            ToggleRow("Perokok Aktif (kebiasaan)", smokingHabitual) { smokingHabitual = it }
+            ToggleRow("Perokok Pasif", passiveSmoker) { passiveSmoker = it }
 
             Spacer(Modifier.height(16.dp))
 
             // --- GEJALA KLINIS
             SectionTitle("Gejala Klinis")
-            SymptomSwitch("Chest Pain", chestPain) { chestPain = it }
-            SymptomSwitch("Coughing of Blood", coughingBlood) { coughingBlood = it }
-            SymptomSwitch("Fatigue", fatigue) { fatigue = it }
-            SymptomSwitch("Weight Loss", weightLoss) { weightLoss = it }
-            SymptomSwitch("Shortness of Breath", shortnessOfBreath) { shortnessOfBreath = it }
-            SymptomSwitch("Wheezing", wheezing) { wheezing = it }
-            SymptomSwitch("Swallowing Difficulty", swallowingDifficulty) { swallowingDifficulty = it }
-            SymptomSwitch("Clubbing of Nails", clubbing) { clubbing = it }
-            SymptomSwitch("Frequent Cold", frequentCold) { frequentCold = it }
-            SymptomSwitch("Dry Cough", dryCough) { dryCough = it }
-            SymptomSwitch("Snoring", snoring) { snoring = it }
+            SymptomSwitch("Nyeri Dada", chestPain) { chestPain = it }
+            SymptomSwitch("Batuk Berdarah", coughingBlood) { coughingBlood = it }
+            SymptomSwitch("Kelelahan", fatigue) { fatigue = it }
+            SymptomSwitch("Penurunan Berat Badan", weightLoss) { weightLoss = it }
+            SymptomSwitch("Sesak Napas", shortnessOfBreath) { shortnessOfBreath = it }
+            SymptomSwitch("Mengi (napas berbunyi)", wheezing) { wheezing = it }
+            SymptomSwitch("Kesulitan Menelan", swallowingDifficulty) { swallowingDifficulty = it }
+            SymptomSwitch("Perubahan Bentuk Kuku (clubbing)", clubbing) { clubbing = it }
+            SymptomSwitch("Sering Pilek", frequentCold) { frequentCold = it }
+            SymptomSwitch("Batuk Kering", dryCough) { dryCough = it }
+            SymptomSwitch("Mendengkur", snoring) { snoring = it }
+
 
             Spacer(Modifier.height(24.dp))
 
@@ -460,16 +478,20 @@ fun RequiredLabel(label: String) {
 
 @Composable
 fun GenderRadioRow(selected: String, onSelect: (String) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Gender:", modifier = Modifier.width(80.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("Jenis Kelamin:", modifier = Modifier.width(120.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             RadioButton(selected == "Male", onClick = { onSelect("Male") })
-            Text("Male", modifier = Modifier.padding(end = 8.dp))
+            Text("Laki-laki", modifier = Modifier.padding(end = 8.dp))
             RadioButton(selected == "Female", onClick = { onSelect("Female") })
-            Text("Female")
+            Text("Wanita")
         }
     }
 }
+
 
 @Composable
 fun SmokingStatusRadio(selected: String, onSelect: (String) -> Unit) {
@@ -557,7 +579,11 @@ fun SmokingStatusDropdown(
     selected: String,
     onSelect: (String) -> Unit
 ) {
-    val options = listOf("Non-Smoker", "Ex-Smoker", "Current Smoker")
+    val options = listOf(
+        "Non-Smoker" to "Tidak Merokok",
+        "Ex-Smoker" to "Mantan Perokok",
+        "Current Smoker" to "Perokok Aktif"
+    )
     var expanded by remember { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
@@ -566,13 +592,11 @@ fun SmokingStatusDropdown(
         modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
-            value = selected,
+            value = options.find { it.first == selected }?.second ?: "",
             onValueChange = { },
             readOnly = true,
-            label = { Text("Smoking Status *") },
-            trailingIcon = {
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            },
+            label = { Text("Status Merokok *") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth()
@@ -581,11 +605,11 @@ fun SmokingStatusDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            options.forEach { option ->
+            options.forEach { (eng, ind) ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = { Text(ind) }, // tampilkan versi Indonesia
                     onClick = {
-                        onSelect(option)
+                        onSelect(eng) // simpan versi Inggris ke Firestore
                         expanded = false
                     }
                 )
@@ -616,7 +640,7 @@ fun MedicationDropdown(
             value = options.find { it.first == selected }?.second ?: "",
             onValueChange = { },
             readOnly = true,
-            label = { Text("Medication *") },
+            label = { Text("Pengobatan *") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .menuAnchor()

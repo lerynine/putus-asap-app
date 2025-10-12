@@ -193,24 +193,18 @@ fun MainScreen(userName: String) {
 fun InfoImage(image: Int, activity: Class<*>) {
     val context = LocalContext.current
 
-    Box(
+    Image(
+        painter = painterResource(id = image),
+        contentDescription = "Info",
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .height(110.dp) // tinggi tetap
             .clickable {
                 val intent = Intent(context, activity)
                 context.startActivity(intent)
-            }
-    ) {
-        Image(
-            painter = painterResource(id = image),
-            contentDescription = "Info",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(155.dp), // tinggi seragam
-            contentScale = ContentScale.Fit
-        )
-    }
+            },
+        contentScale = ContentScale.Fit // ubah dari Fit ke Crop
+    )
 }
 
 @Composable
