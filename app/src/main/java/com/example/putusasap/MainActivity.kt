@@ -41,23 +41,43 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PutusAsapTheme {
-                MainScreen(userName = "Leryna")
+                MainScreen()
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(userName: String) {
+fun MainScreen() {
     val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
+    val uid = auth.currentUser?.uid
+
+    var userName by remember { mutableStateOf<String?>(null) }
+
+    // 🔹 Ambil nama user dari Firestore
+    LaunchedEffect(uid) {
+        if (uid != null) {
+            try {
+                val userDoc = db.collection("users").document(uid).get().await()
+                userName = userDoc.getString("name") ?: "Pengguna"
+            } catch (e: Exception) {
+                userName = "Pengguna"
+            }
+        } else {
+            userName = "Pengguna"
+        }
+    }
+
     Scaffold(
         bottomBar = { BottomNavigationBar() },
-        containerColor = Color.White // ✅ pastikan scaffold sendiri juga putih
+        containerColor = Color.White
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White) // ✅ biar tidak ikut tema
+                .background(Color.White)
                 .padding(innerPadding)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
@@ -68,24 +88,22 @@ fun MainScreen(userName: String) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    horizontalAlignment = Alignment.Start
-                ) {
+                Column(horizontalAlignment = Alignment.Start) {
                     Image(
                         painter = painterResource(id = R.drawable.logo_home),
                         contentDescription = "Logo",
                         modifier = Modifier
-                            .height(35.dp)   // ✅ lebih panjang ke bawah
-                            .width(110.dp)    // ✅ lebih lebar ke samping (kalau perlu)
+                            .height(35.dp)
+                            .width(110.dp)
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Hello, $userName",
+                        text = "Halo, ${userName ?: "..." }",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFC15F56) // ✅ pakai warna merah khas aplikasi
+                        color = Color(0xFFC15F56)
                     )
                 }
                 NotificationWithBadge()
@@ -145,12 +163,16 @@ fun MainScreen(userName: String) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            // di MainScreen
                             InfoMiniCard(
                                 title = "Deteksi Risiko Penyakit",
                                 icon = R.drawable.ic_health,
                                 onClick = {
-                                    context.startActivity(Intent(context, com.example.putusasap.com.example.putusasap.FormDeteksiActivity::class.java))
+                                    context.startActivity(
+                                        Intent(
+                                            context,
+                                            com.example.putusasap.com.example.putusasap.FormDeteksiActivity::class.java
+                                        )
+                                    )
                                 }
                             )
 
@@ -169,10 +191,8 @@ fun MainScreen(userName: String) {
 
             Spacer(Modifier.height(16.dp))
 
-            // Informasi
             Text("Informasi:", fontWeight = FontWeight.Bold, fontSize = 16.sp)
 
-            // ✅ Satu gambar satu row, lebar penuh, background putih
             InfoImage(
                 image = R.drawable.img_info1,
                 activity = ArtikelParuActivity::class.java
@@ -251,7 +271,7 @@ fun DailyMissionProgressScreen() {
             val doc = snapshot.documents[0]
 
             // daftar field misi
-            val fields = listOf("misi_rokok", "misi_aktivitas", "misi_tidur", "misi_air")
+            val fields = listOf("misi_rokok", "aktivitas_fisik", "tidur", "air")
 
             // hitung berapa true
             val completed = fields.count { doc.getBoolean(it) == true }
@@ -482,10 +502,10 @@ suspend fun calculateStreak(uid: String, db: FirebaseFirestore): Int {
             break
         } else {
             val doc = snapshot.documents[0]
-            val allTrue = (doc.getBoolean("misi_aktivitas") == true &&
+            val allTrue = (doc.getBoolean("aktivitas_fisik") == true &&
                     doc.getBoolean("misi_rokok") == true &&
-                    doc.getBoolean("misi_tidur") == true &&
-                    doc.getBoolean("misi_air") == true)
+                    doc.getBoolean("tidur") == true &&
+                    doc.getBoolean("air") == true)
             if (allTrue) {
                 streak++
             } else {

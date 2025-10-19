@@ -434,13 +434,6 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
 
                             Toast.makeText(context, "Data berhasil disimpan", Toast.LENGTH_SHORT).show()
 
-                            val intent = Intent(context, com.example.putusasap.HasilDeteksiActivity::class.java)
-                            intent.putExtra("resiko_lung", "Rendah")
-                            intent.putExtra("resiko_asthma", "Sedang")
-                            intent.putExtra("resiko_cardio", "Tinggi")
-                            context.startActivity(intent)
-
-
                             onSubmit(data)
                         }
                         .addOnFailureListener { e ->

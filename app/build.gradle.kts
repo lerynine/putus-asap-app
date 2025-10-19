@@ -60,6 +60,8 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
 
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.23")
 
