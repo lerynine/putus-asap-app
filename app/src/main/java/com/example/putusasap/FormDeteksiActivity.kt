@@ -292,28 +292,78 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
 
                     var kategoriLung = "N/A"
 
-                    // 🔹 Model Asthma
+                    // 🔹 Model Asthma (PPOK)
                     if (!peakFlow.isNullOrEmpty()) {
                         try {
-                            val interpreter = Interpreter(loadModelFile(context, "asthma_model.tflite"))
+                            val interpreter = Interpreter(loadModelFile(context, "asthma_model_improved.tflite"))
 
-                            val input = FloatArray(1 + 1 + 3 + 2 + 1)
+                            // === 1️⃣ Susun input dalam urutan yang SAMA dengan model Python ===
+                            val input = FloatArray(8)
                             var idx = 0
                             input[idx++] = age.toFloatOrNull() ?: 0f
                             input[idx++] = encodeGender(gender)
+                            input[idx++] = peakFlow.toFloatOrNull() ?: 0f
                             encodeSmoking(smokingStatus).forEach { input[idx++] = it }
                             encodeMedication(medication).forEach { input[idx++] = it }
-                            input[idx++] = peakFlow.toFloatOrNull() ?: 0f
 
+                            // Log mentah sebelum scaling
+                            android.util.Log.d("AsthmaModelRawInput", "Input mentah: " +
+                                    input.joinToString(", ", prefix = "[", postfix = "]"))
+
+                            // === 2️⃣ Scaling: (x - mean) / std ===
+                            val mean = floatArrayOf(
+                                39.1916667f,  // Age
+                                0.47083333f,  // Gender
+                                279.7125f,    // Peak_Flow
+                                0.32916667f,  // Smoking_Current
+                                0.27916667f,  // Smoking_Ex-Smoker
+                                0.39166667f,  // Smoking_Non-Smoker
+                                0.28333333f,  // Medication_Controller Medication
+                                0.24166667f   // Medication_Inhaler
+                            )
+
+                            val scale = floatArrayOf(
+                                14.20199272f, // Age
+                                0.49914858f,  // Gender
+                                73.31226485f, // Peak_Flow
+                                0.4699106f,   // Smoking_Current
+                                0.44858961f,  // Smoking_Ex-Smoker
+                                0.48812282f,  // Smoking_Non-Smoker
+                                0.45061686f,  // Medication_Controller Medication
+                                0.42809332f   // Medication_Inhaler
+                            )
+
+                            for (i in input.indices) {
+                                input[i] = (input[i] - mean[i]) / scale[i]
+                            }
+
+                            // Log setelah scaling
+                            android.util.Log.d("AsthmaModelScaledInput", "Input setelah scaling: " +
+                                    input.joinToString(", ", prefix = "[", postfix = "]"))
+
+                            // === 3️⃣ Jalankan inferensi ===
                             val inputBuffer = arrayOf(input)
                             val outputBuffer = Array(1) { FloatArray(1) }
                             interpreter.run(inputBuffer, outputBuffer)
 
                             probAsthma = outputBuffer[0][0]
-                            kategoriAsthma = categorizeRisk(probAsthma)
+                            kategoriAsthma = when {
+                                probAsthma < 0.33f -> "Rendah"
+                                probAsthma < 0.66f -> "Sedang"
+                                else -> "Tinggi"
+                            }
+
+                            // === 4️⃣ Log hasil inferensi ===
+                            android.util.Log.d("AsthmaModelOutput",
+                                "Probabilitas Asthma = ${"%.6f".format(probAsthma)} ($kategoriAsthma)")
+
+                            // Jika kamu ingin lihat output mentah model (jaga-jaga kalau output multi-dimensi)
+                            android.util.Log.d("AsthmaModelOutputRaw",
+                                "Output mentah: " + outputBuffer[0].joinToString(", "))
 
                         } catch (e: Exception) {
                             Toast.makeText(context, "Error ML (Asthma): ${e.message}", Toast.LENGTH_LONG).show()
+                            android.util.Log.e("AsthmaModelError", "Gagal inferensi Asthma: ${e.message}", e)
                         }
                     }
 
@@ -322,79 +372,168 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         !cholesterol.isNullOrEmpty() && !glucose.isNullOrEmpty()
                     ) {
                         try {
-                            val interpreter = Interpreter(loadModelFile(context, "cardio_model.tflite"))
+                            val interpreter = Interpreter(loadModelFile(context, "cardio_model_improved.tflite"))
+
+                            // 🔧 Persiapan input (harus urut dan sesuai preprocessing Python)
+                            val ageDays = age.toFloatOrNull() ?: 0f
+                            val ageYears = ageDays / 365f // sesuai preprocessing di Python
+                            val apHiVal = apHi.toFloatOrNull()?.coerceIn(80f, 200f) ?: 0f
+                            val apLoVal = apLo.toFloatOrNull()?.coerceIn(50f, 150f) ?: 0f
 
                             val input = FloatArray(11)
                             var idx = 0
-                            input[idx++] = age.toFloatOrNull() ?: 0f
+                            input[idx++] = ageYears
                             input[idx++] = if (gender == "Male") 2f else 1f
                             input[idx++] = height.toFloatOrNull() ?: 0f
                             input[idx++] = weight.toFloatOrNull() ?: 0f
-                            input[idx++] = apHi.toFloatOrNull() ?: 0f
-                            input[idx++] = apLo.toFloatOrNull() ?: 0f
+                            input[idx++] = apHiVal
+                            input[idx++] = apLoVal
                             input[idx++] = cholesterol.toFloatOrNull() ?: 0f
                             input[idx++] = glucose.toFloatOrNull() ?: 0f
                             input[idx++] = if (smokingHabitual) 1f else 0f
                             input[idx++] = if (riskAlcoholScale > 5) 1f else 0f
                             input[idx++] = if (physicalActivity) 1f else 0f
 
+                            // 🧠 Log sebelum standardisasi (debug)
+                            android.util.Log.d("CardioModelInputRaw", """
+            === INPUT CARDIO MODEL (RAW) ===
+            Age (tahun)        : ${"%.2f".format(ageYears)}
+            Gender (1=F,2=M)   : ${if (gender == "Male") 2f else 1f}
+            Height (cm)        : ${height}
+            Weight (kg)        : ${weight}
+            AP_hi (Sistolik)   : $apHiVal
+            AP_lo (Diastolik)  : $apLoVal
+            Cholesterol        : ${cholesterol}
+            Glucose            : ${glucose}
+            Smoking (1/0)      : ${if (smokingHabitual) 1 else 0}
+            Alcohol>5 (1/0)    : ${if (riskAlcoholScale > 5) 1 else 0}
+            Physical Activity  : ${if (physicalActivity) 1 else 0}
+        """.trimIndent())
+
+                            // 🔹 Standardisasi sesuai scaler dari Python
+                            val mean = floatArrayOf(
+                                52.8349643f, 1.34910714f, 164.344089f, 74.2220586f,
+                                126.876929f, 82.2636786f, 1.36675f, 1.22667857f,
+                                0.0878392857f, 0.0530178571f, 0.804946429f
+                            )
+
+                            val scale = floatArrayOf(
+                                6.75208531f, 0.47668789f, 8.22690571f, 14.38961719f,
+                                17.22651392f, 12.44542983f, 0.67991187f, 0.57231582f,
+                                0.28306103f, 0.22406911f, 0.39624194f
+                            )
+
+                            for (i in input.indices) {
+                                input[i] = (input[i] - mean[i]) / scale[i]
+                            }
+
+                            // 🧩 Log hasil setelah standardisasi
+                            android.util.Log.d(
+                                "CardioModelScaledInput",
+                                input.joinToString(prefix = "Scaled input: [", postfix = "]") { "%.3f".format(it) }
+                            )
+
+                            // 🔮 Jalankan model
                             val inputBuffer = arrayOf(input)
                             val outputBuffer = Array(1) { FloatArray(1) }
                             interpreter.run(inputBuffer, outputBuffer)
 
                             probCardio = outputBuffer[0][0]
-                            kategoriCardio =
-                                if (probCardio > 0.5f) "Tinggi" else "Risiko Rendah Cardio"
+                            android.util.Log.d("CardioModelOutput", "Probabilitas cardio = ${"%.3f".format(probCardio)}")
+
+                            // 🩺 Penentuan kategori risiko mengikuti versi Python
+                            kategoriCardio = when {
+                                probCardio < 0.33f -> "Rendah"
+                                probCardio < 0.66f -> "Sedang"
+                                else -> "Tinggi"
+                            }
+
+                            android.util.Log.d("CardioModelOutput", "Kategori risiko: $kategoriCardio")
 
                         } catch (e: Exception) {
                             Toast.makeText(context, "Error ML (Cardio): ${e.message}", Toast.LENGTH_LONG).show()
+                            android.util.Log.e("CardioModelError", "Gagal inferensi Cardio: ${e.message}", e)
                         }
                     }
 
-                    // 🔹 Model Lung Disease
+                    // 🔹 Model Lung Disease (sesuai Python)
                     try {
-                        val interpreter = Interpreter(loadModelFile(context, "lung_disease_model.tflite"))
+                        val interpreter = Interpreter(loadModelFile(context, "lung_disease_model_improved.tflite"))
 
+                        // === 1️⃣ Urutan fitur HARUS sama dengan CSV & Python ===
                         val input = FloatArray(23)
                         var idx = 0
-                        input[idx++] = age.toFloatOrNull() ?: 0f
-                        input[idx++] = if (gender == "Male") 2f else 1f
-                        input[idx++] = airPollution.toFloat()
-                        input[idx++] = riskAlcoholScale.toFloat()
-                        input[idx++] = if (dustAllergyPresent) 1f else 0f
-                        input[idx++] = occupationalHazards.toFloat()
-                        input[idx++] = geneticRisk.toFloat()
-                        input[idx++] = if (chronicLungDisease) 1f else 0f
-                        input[idx++] = balancedDiet.toFloat()
-                        input[idx++] = obesityScale.toFloat()
-                        input[idx++] = if (smokingHabitual) 1f else 0f
-                        input[idx++] = if (passiveSmoker) 1f else 0f
-                        input[idx++] = if (chestPain) 1f else 0f
-                        input[idx++] = if (coughingBlood) 1f else 0f
-                        input[idx++] = if (fatigue) 1f else 0f
-                        input[idx++] = if (weightLoss) 1f else 0f
-                        input[idx++] = if (shortnessOfBreath) 1f else 0f
-                        input[idx++] = if (wheezing) 1f else 0f
-                        input[idx++] = if (swallowingDifficulty) 1f else 0f
-                        input[idx++] = if (clubbing) 1f else 0f
-                        input[idx++] = if (frequentCold) 1f else 0f
-                        input[idx++] = if (dryCough) 1f else 0f
-                        input[idx++] = if (snoring) 1f else 0f
+                        input[idx++] = age.toFloat() ?: 0f                     // Age
+                        input[idx++] = if (gender == "Male") 2f else 1f              // Gender
+                        input[idx++] = airPollution.toFloat() ?: 0f            // Air Pollution
+                        input[idx++] = riskAlcoholScale.toFloat() ?: 0f        // Alcohol use
+                        input[idx++] = if (dustAllergyPresent) 1f else 0f            // Dust Allergy
+                        input[idx++] = occupationalHazards.toFloat() ?: 0f     // OccuPational Hazards
+                        input[idx++] = geneticRisk.toFloat() ?: 0f             // Genetic Risk
+                        input[idx++] = if (chronicLungDisease) 1f else 0f            // chronic Lung Disease
+                        input[idx++] = balancedDiet.toFloat() ?: 0f            // Balanced Diet
+                        input[idx++] = obesityScale.toFloat() ?: 0f            // Obesity
+                        input[idx++] = if (smokingHabitual) 1f else 0f               // Smoking
+                        input[idx++] = if (passiveSmoker) 1f else 0f                 // Passive Smoker
+                        input[idx++] = if (chestPain) 1f else 0f                     // Chest Pain
+                        input[idx++] = if (coughingBlood) 1f else 0f                 // Coughing of Blood
+                        input[idx++] = if (fatigue) 1f else 0f                       // Fatigue
+                        input[idx++] = if (weightLoss) 1f else 0f                    // Weight Loss
+                        input[idx++] = if (shortnessOfBreath) 1f else 0f             // Shortness of Breath
+                        input[idx++] = if (wheezing) 1f else 0f                      // Wheezing
+                        input[idx++] = if (swallowingDifficulty) 1f else 0f          // Swallowing Difficulty
+                        input[idx++] = if (clubbing) 1f else 0f                      // Clubbing of Finger Nails
+                        input[idx++] = if (frequentCold) 1f else 0f                  // Frequent Cold
+                        input[idx++] = if (dryCough) 1f else 0f                      // Dry Cough
+                        input[idx++] = if (snoring) 1f else 0f                       // Snoring
 
+                        android.util.Log.d("LungModelRawInput", "Input mentah: " +
+                                input.joinToString(", ", prefix = "[", postfix = "]"))
+
+                        // === 2️⃣ Scaling (x - mean) / std sesuai Python ===
+                        val mean = floatArrayOf(
+                            37.07375f, 1.40875f, 3.83875f, 4.5875f, 5.1775f, 4.875f, 4.62f, 4.4075f,
+                            4.51125f, 4.4775f, 3.935f, 4.2125f, 4.46625f, 4.84f, 3.82375f, 3.84875f,
+                            4.24625f, 3.82125f, 3.74f, 3.99625f, 3.56125f, 3.86f, 2.94f
+                        )
+
+                        val scale = floatArrayOf(
+                            11.86637312f, 0.49160293f, 2.03414563f, 2.61196167f, 1.96748412f, 2.08851023f,
+                            2.12499412f, 1.82248285f, 2.11538967f, 2.11411772f, 2.47856309f, 2.3156735f,
+                            2.2552962f, 2.43195395f, 2.23331277f, 2.20587249f, 2.27444739f, 2.02096473f,
+                            2.27484065f, 2.41065052f, 1.81762164f, 2.01318156f, 1.49378713f
+                        )
+
+                        for (i in input.indices) {
+                            input[i] = (input[i] - mean[i]) / scale[i]
+                        }
+
+                        android.util.Log.d("LungModelScaledInput", "Input setelah scaling: " +
+                                input.joinToString(", ", prefix = "[", postfix = "]"))
+
+                        // === 3️⃣ Jalankan inferensi ===
                         val inputBuffer = arrayOf(input)
-                        val outputBuffer = Array(1) { FloatArray(3) }
+                        val outputBuffer = Array(1) { FloatArray(3) } // Rendah, Sedang, Tinggi
                         interpreter.run(inputBuffer, outputBuffer)
 
                         val result = outputBuffer[0]
                         val maxIdx = result.indices.maxByOrNull { result[it] } ?: 0
+
                         kategoriLung = when (maxIdx) {
                             0 -> "Rendah"
                             1 -> "Sedang"
                             else -> "Tinggi"
                         }
 
+                        android.util.Log.d(
+                            "LungModelOutput",
+                            "Probabilitas = Rendah:${"%.4f".format(result[0])}, Sedang:${"%.4f".format(result[1])}, Tinggi:${"%.4f".format(result[2])}"
+                        )
+                        android.util.Log.d("LungModelKategori", "Prediksi kategori: $kategoriLung")
+
                     } catch (e: Exception) {
                         Toast.makeText(context, "Error ML (Lung Disease): ${e.message}", Toast.LENGTH_LONG).show()
+                        android.util.Log.e("LungModelError", "Gagal inferensi: ${e.message}", e)
                     }
 
                     // --- Simpan data ---
@@ -675,18 +814,23 @@ fun categorizeRisk(prob: Float): String =
         else -> "Tinggi"
     }
 
-// Encode helper
-fun encodeGender(gender: String): Float = if (gender == "Male") 1f else 0f
+private fun encodeGender(gender: String?): Float {
+    return if (gender.equals("Male", true)) 1f else 0f
+}
 
-fun encodeSmoking(smokingStatus: String): FloatArray =
-    when (smokingStatus) {
+private fun encodeSmoking(status: String?): FloatArray {
+    return when (status) {
+        "Current" -> floatArrayOf(1f, 0f, 0f)
         "Ex-Smoker" -> floatArrayOf(0f, 1f, 0f)
-        "Current" -> floatArrayOf(0f, 0f, 1f)
-        else -> floatArrayOf(1f, 0f, 0f) // Non-Smoker
+        "Non-Smoker" -> floatArrayOf(0f, 0f, 1f)
+        else -> floatArrayOf(0f, 0f, 0f)
     }
+}
 
-fun encodeMedication(med: String): FloatArray =
-    when (med) {
+fun encodeMedication(medication: String): FloatArray {
+    return when (medication) {
+        "Controller" -> floatArrayOf(1f, 0f)
         "Inhaler" -> floatArrayOf(0f, 1f)
-        else -> floatArrayOf(1f, 0f) // None/default
+        else -> floatArrayOf(0f, 0f)
     }
+}
