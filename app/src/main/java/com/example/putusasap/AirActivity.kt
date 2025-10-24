@@ -220,21 +220,43 @@ fun saveMissionToFirestore() {
 
     val uid = user.uid
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-    val docRef = firestore.collection("misi").document("${uid}_$today")
 
-    val data = mapOf(
+    val newData = mapOf(
         "air" to true,
         "tanggal" to today,
         "uid" to uid
     )
 
-    Log.d("FirestoreSave", "Mencoba simpan data: $data ke doc: ${docRef.path}")
-
-    docRef.set(data, SetOptions.merge())
-        .addOnSuccessListener {
-            Log.d("FirestoreSave", "Berhasil simpan data untuk user $uid")
+    // 🔹 Cek apakah sudah ada dokumen dengan uid dan tanggal yang sama
+    firestore.collection("misi")
+        .whereEqualTo("uid", uid)
+        .whereEqualTo("tanggal", today)
+        .get()
+        .addOnSuccessListener { snapshot ->
+            if (!snapshot.isEmpty) {
+                // Sudah ada data untuk hari ini → update dokumen pertama
+                val docId = snapshot.documents[0].id
+                firestore.collection("misi").document(docId)
+                    .set(newData, SetOptions.merge())
+                    .addOnSuccessListener {
+                        Log.d("FirestoreSave", "✅ Data misi hari ini sudah ada, diperbarui.")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("FirestoreSave", "❌ Gagal memperbarui data: ${e.message}", e)
+                    }
+            } else {
+                // Belum ada → buat dokumen baru
+                firestore.collection("misi")
+                    .add(newData)
+                    .addOnSuccessListener {
+                        Log.d("FirestoreSave", "✅ Berhasil membuat data misi baru untuk hari ini.")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("FirestoreSave", "❌ Gagal membuat data misi: ${e.message}", e)
+                    }
+            }
         }
         .addOnFailureListener { e ->
-            Log.e("FirestoreSave", "Gagal simpan data: ${e.message}", e)
+            Log.e("FirestoreSave", "❌ Gagal memeriksa data: ${e.message}", e)
         }
 }

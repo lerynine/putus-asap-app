@@ -2,7 +2,6 @@ package com.example.putusasap
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -37,14 +36,22 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             PutusAsapTheme {
+                var emailInput by remember { mutableStateOf("") }
+
                 LoginScreen(
-                    onLoginClick = { email, password -> signInUser(email, password) },
+                    onLoginClick = { email, password ->
+                        signInUser(email, password)
+                    },
                     onForgotPasswordClick = {
-                        Toast.makeText(this, "Fitur lupa sandi belum dibuat", Toast.LENGTH_SHORT).show()
+                        // ✅ Langsung kirim email reset password lewat Firebase
+                        if (emailInput.isNotEmpty()) {
+                            auth.sendPasswordResetEmail(emailInput)
+                        }
                     },
                     onRegisterClick = {
                         startActivity(Intent(this, RegisterActivity::class.java))
-                    }
+                    },
+                    emailState = { emailInput = it }
                 )
             }
         }
@@ -57,10 +64,11 @@ class LoginActivity : ComponentActivity() {
                     startActivity(Intent(this, MainActivity::class.java))
                     finish()
                 } else {
-                    Toast.makeText(
+                    // tetap tampilkan pesan error login
+                    android.widget.Toast.makeText(
                         this,
                         "Login gagal: ${task.exception?.message}",
-                        Toast.LENGTH_LONG
+                        android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
             }
@@ -73,25 +81,28 @@ private val Red = Color(0xFFC15F56)
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
     onForgotPasswordClick: () -> Unit,
-    onRegisterClick: () -> Unit
+    onRegisterClick: () -> Unit,
+    emailState: (String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // update email ke parent supaya Firebase bisa kirim link
+    LaunchedEffect(email) { emailState(email) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Red)
     ) {
-        // ✅ Hiasan kiri atas (benar-benar mepet kiri atas)
         Image(
             painter = painterResource(id = R.drawable.ic_decor),
             contentDescription = "Decor",
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .wrapContentSize(Alignment.TopStart) // isi sesuai ukuran asli drawable
-                .offset(x = 0.dp, y = 0.dp)          // tanpa jarak
+                .wrapContentSize(Alignment.TopStart)
+                .offset(x = 0.dp, y = 0.dp)
         )
 
         Column(
@@ -100,7 +111,6 @@ fun LoginScreen(
                 .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Logo",
@@ -109,14 +119,12 @@ fun LoginScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ✅ Bagian tengah: teks + gambar orang
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 verticalAlignment = Alignment.Bottom
             ) {
-                // Teks
                 Text(
                     text = "Masuk dan\nmulai bebas\ndari asap!",
                     fontSize = 28.sp,
@@ -128,26 +136,24 @@ fun LoginScreen(
                         .weight(1f)
                 )
 
-                // Gambar orang
                 Image(
                     painter = painterResource(id = R.drawable.img_person),
                     contentDescription = "Person",
-                    contentScale = ContentScale.FillHeight, // biar memenuhi tinggi Row
+                    contentScale = ContentScale.FillHeight,
                     modifier = Modifier
                         .fillMaxHeight()
                         .wrapContentWidth(Alignment.End)
-                        .offset(y = 16.dp) // dorong ke bawah, boleh positif
+                        .offset(y = 16.dp)
                         .padding(end = 16.dp)
                 )
             }
 
-            // ✅ Kotak putih rounded
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(fraction = 0.65f),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White) // selalu putih
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Column(
                     modifier = Modifier
@@ -186,7 +192,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // Tombol Masuk
                     Button(
                         onClick = { onLoginClick(email, password) },
                         modifier = Modifier
@@ -213,6 +218,7 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(16.dp))
 
+                    // ✅ Langsung kirim email reset password
                     Text(
                         text = "Lupa kata sandi?",
                         color = Red,
@@ -236,4 +242,3 @@ fun LoginScreen(
         }
     }
 }
-

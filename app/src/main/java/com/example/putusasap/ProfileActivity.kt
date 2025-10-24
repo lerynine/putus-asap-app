@@ -46,7 +46,6 @@ fun ProfileScreen() {
     var email by remember { mutableStateOf("") }
     var joinDate by remember { mutableStateOf("Tidak diketahui") }
 
-    // 🔹 Ambil tanggal registrasi dari FirebaseAuth
     LaunchedEffect(user) {
         user?.let {
             val creationTime = it.metadata?.creationTimestamp
@@ -108,6 +107,7 @@ fun ProfileScreen() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.White) // 🔹 Tambahkan ini untuk background putih
                 .padding(paddingValues)
         ) {
             // 🔹 Header Background
@@ -187,10 +187,19 @@ fun ProfileScreen() {
 
                     Divider(color = Color.Gray.copy(alpha = 0.2f))
 
+                    // 💰 Format angka dengan locale Indonesia dan kalikan 1.000 untuk menampilkan nilai rupiah sebenarnya
+                    val numberFormat = java.text.NumberFormat.getNumberInstance(java.util.Locale("id", "ID"))
+                    val savingDisplay = if (totalSaving != 0f) {
+                        val realSaving = totalSaving * 1000
+                        "Rp ${numberFormat.format(realSaving)}"
+                    } else {
+                        "Rp 0"
+                    }
+
                     ProfileMenuItem(
                         icon = R.drawable.ic_money,
                         title = "Total Penghematan Uang",
-                        subtitle = "Rp ${"%,.0f".format(totalSaving)}",
+                        subtitle = savingDisplay,
                         showArrow = false,
                         onClick = {}
                     )

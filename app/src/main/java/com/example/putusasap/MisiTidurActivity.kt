@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,15 +41,10 @@ class MisiTidurActivity : ComponentActivity() {
 fun MisiTidurScreen(
     onBackClick: () -> Unit
 ) {
-    val gradientBrush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFFFC5C0), Color(0xFFFFF5F5)) // 🔴 gradasi merah
-    )
-
-    // State
     var step by remember { mutableStateOf(1) }
     var jamTidur by remember { mutableStateOf("") }
     var durasiTidur by remember { mutableStateOf("") }
-    var selesaiMsg by remember { mutableStateOf("") }
+    var tidurCukup by remember { mutableStateOf<Boolean?>(null) }
     var sudahIsiHariIni by remember { mutableStateOf(false) }
 
     val auth = FirebaseAuth.getInstance()
@@ -58,21 +52,21 @@ fun MisiTidurScreen(
     val uid = auth.currentUser?.uid ?: ""
     val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-    // 🔄 Cek apakah sudah isi hari ini (khusus field tidur)
+    // ✅ Cek apakah sudah isi hari ini
     LaunchedEffect(Unit) {
         if (uid.isNotEmpty()) {
             firestore.collection("misi")
-                .document(uid + "_" + today)
+                .whereEqualTo("uid", uid)
+                .whereEqualTo("tanggal", today)
                 .get()
-                .addOnSuccessListener { doc ->
-                    if (doc.exists() && doc.contains("tidur")) {
-                        sudahIsiHariIni = true
-                        selesaiMsg = if (doc.getBoolean("tidur") == true) {
-                            "Selamat, kamu sudah memiliki tidur yang cukup ✅"
-                        } else {
-                            "Tidur kamu belum cukup hari ini 😴"
+                .addOnSuccessListener { snapshot ->
+                    if (!snapshot.isEmpty) {
+                        val doc = snapshot.documents[0]
+                        if (doc.contains("tidur")) {
+                            sudahIsiHariIni = true
+                            tidurCukup = doc.getBoolean("tidur")
+                            step = 3
                         }
-                        step = 3
                     }
                 }
         }
@@ -81,12 +75,12 @@ fun MisiTidurScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(gradientBrush)
+            .background(Color.White) // 🔹 putih polos
             .padding(16.dp)
     ) {
         when {
             sudahIsiHariIni -> {
-                FinishScreen(onBackClick, selesaiMsg)
+                FinishScreen(onBackClick, tidurCukup == true)
             }
 
             step == 1 -> {
@@ -108,25 +102,31 @@ fun MisiTidurScreen(
                 ) { answer ->
                     durasiTidur = answer
 
-                    val tidurCukup = (jamTidur == "Sebelum jam 10 malam") &&
+                    val hasil = (jamTidur == "Sebelum jam 10 malam") &&
                             (durasiTidur == "Sekitar 8 Jam" || durasiTidur == "Lebih dari 8 jam")
+                    tidurCukup = hasil
 
-                    selesaiMsg = if (tidurCukup) {
-                        "Selamat, kamu sudah memiliki tidur yang cukup ✅"
-                    } else {
-                        "Tidur kamu belum cukup hari ini 😴"
-                    }
-
-                    // Simpan ke Firestore
+                    // ✅ Simpan ke Firestore tanpa duplikat
                     if (uid.isNotEmpty()) {
                         val data = hashMapOf(
                             "uid" to uid,
                             "tanggal" to today,
-                            "tidur" to tidurCukup // selalu ada, true/false
+                            "tidur" to hasil
                         )
+
                         firestore.collection("misi")
-                            .document(uid + "_" + today)
-                            .set(data, SetOptions.merge()) // merge agar tidak timpa field lain
+                            .whereEqualTo("uid", uid)
+                            .whereEqualTo("tanggal", today)
+                            .get()
+                            .addOnSuccessListener { snapshot ->
+                                if (!snapshot.isEmpty) {
+                                    val docId = snapshot.documents[0].id
+                                    firestore.collection("misi").document(docId)
+                                        .set(data, SetOptions.merge())
+                                } else {
+                                    firestore.collection("misi").add(data)
+                                }
+                            }
                     }
 
                     step = 3
@@ -134,7 +134,7 @@ fun MisiTidurScreen(
             }
 
             step == 3 -> {
-                FinishScreen(onBackClick, selesaiMsg)
+                FinishScreen(onBackClick, tidurCukup == true)
             }
         }
     }
@@ -148,7 +148,7 @@ fun QuestionScreen(
     onSelect: (String) -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(Color.White), // 🔹 putih polos
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 🔙 Tombol back
@@ -169,7 +169,6 @@ fun QuestionScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Pertanyaan
         Text(
             text = question,
             fontSize = 18.sp,
@@ -179,7 +178,6 @@ fun QuestionScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // 🔘 Opsi jawaban
         options.forEach { option ->
             AnswerOption(option) { onSelect(option) }
             Spacer(modifier = Modifier.height(16.dp))
@@ -193,7 +191,7 @@ fun AnswerOption(text: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
+            .background(Color(0xFFF5F5F5)) // sedikit abu biar tombolnya beda
             .clickable { onClick() }
             .padding(vertical = 16.dp),
         contentAlignment = Alignment.Center
@@ -208,13 +206,13 @@ fun AnswerOption(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun FinishScreen(onBackClick: () -> Unit, message: String) {
+fun FinishScreen(onBackClick: () -> Unit, tidurCukup: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.White) // 🔹 putih polos
             .padding(16.dp)
     ) {
-        // 🔙 Tombol back di pojok kiri atas
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -231,15 +229,19 @@ fun FinishScreen(onBackClick: () -> Unit, message: String) {
             )
         }
 
-        // 💬 Isi utama di tengah
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            val imageRes = if (tidurCukup)
+                R.drawable.tidur_cukup
+            else
+                R.drawable.tidur_tidak_cukup
+
             androidx.compose.foundation.Image(
-                painter = painterResource(id = R.drawable.tidur_cukup), // ganti dengan nama file kamu
-                contentDescription = "Tidur Cukup",
+                painter = painterResource(id = imageRes),
+                contentDescription = "Hasil Tidur",
                 modifier = Modifier
                     .size(300.dp)
                     .clip(RoundedCornerShape(16.dp))

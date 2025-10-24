@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +36,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.tasks.await
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,9 +60,25 @@ fun MainScreen() {
     val uid = auth.currentUser?.uid
 
     var userName by remember { mutableStateOf<String?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refreshTrigger by remember { mutableStateOf(0) }
 
-    // 🔹 Ambil nama user dari Firestore
-    LaunchedEffect(uid) {
+// 🔁 Jalankan saat Activity kembali ke foreground
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshTrigger++ // trigger naik setiap kali kembali ke layar ini
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+
+// 🔹 Ambil nama user dari Firestore
+    LaunchedEffect(uid, refreshTrigger) {
         if (uid != null) {
             try {
                 val userDoc = db.collection("users").document(uid).get().await()
@@ -140,7 +161,8 @@ fun MainScreen() {
 
                         Spacer(Modifier.height(16.dp))
 
-                        DailyMissionProgressScreen()
+                        DailyMissionProgressScreen(refreshTrigger)
+
 
                         Spacer(Modifier.height(8.dp))
 
@@ -245,7 +267,7 @@ fun ImageButton(image: Int, onClick: () -> Unit) {
 }
 
 @Composable
-fun DailyMissionProgressScreen() {
+fun DailyMissionProgressScreen(refreshTrigger: Int) {
     val auth = FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid ?: return
     val db = FirebaseFirestore.getInstance()
@@ -253,8 +275,9 @@ fun DailyMissionProgressScreen() {
     var progress by remember { mutableStateOf(0f) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // ✅ Cek misi dari Firestore
-    LaunchedEffect(Unit) {
+    // ✅ Ambil data ulang setiap kali refreshTrigger berubah
+    LaunchedEffect(refreshTrigger) {
+        isLoading = true
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = dateFormat.format(Date())
 
@@ -265,20 +288,14 @@ fun DailyMissionProgressScreen() {
             .await()
 
         if (snapshot.isEmpty) {
-            // Belum ada dokumen hari ini
             progress = 0f
         } else {
             val doc = snapshot.documents[0]
-
-            // daftar field misi
             val fields = listOf("misi_rokok", "aktivitas_fisik", "tidur", "air")
-
-            // hitung berapa true
             val completed = fields.count { doc.getBoolean(it) == true }
-
-            // 1 field = 25%
             progress = completed * 0.25f
         }
+
         isLoading = false
     }
 

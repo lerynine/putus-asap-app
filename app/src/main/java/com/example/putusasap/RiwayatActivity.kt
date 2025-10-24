@@ -261,7 +261,6 @@ fun RiwayatScreen() {
                             )
                             Spacer(Modifier.height(4.dp))
                             Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Hasil Deteksi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
                             Text(
                                 text = "Resiko Kanker Paru: ${
