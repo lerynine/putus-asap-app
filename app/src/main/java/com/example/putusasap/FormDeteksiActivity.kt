@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.putusasap.ui.theme.PutusAsapTheme
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -461,31 +462,36 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                         val interpreter = Interpreter(loadModelFile(context, "lung_disease_model_improved.tflite"))
 
                         // === 1️⃣ Urutan fitur HARUS sama dengan CSV & Python ===
+                        // === 1️⃣ Urutan fitur HARUS sama dengan CSV & Python ===
                         val input = FloatArray(23)
                         var idx = 0
-                        input[idx++] = age.toFloat() ?: 0f                     // Age
+
+                        fun Float?.safe() = this ?: 0f
+                        fun Boolean.toScale(): Float = if (this) 10f else 1f // konversi boolean ke skala 1–10
+
+                        input[idx++] = age.toFloat().safe()                          // Age
                         input[idx++] = if (gender == "Male") 2f else 1f              // Gender
-                        input[idx++] = airPollution.toFloat() ?: 0f            // Air Pollution
-                        input[idx++] = riskAlcoholScale.toFloat() ?: 0f        // Alcohol use
-                        input[idx++] = if (dustAllergyPresent) 1f else 0f            // Dust Allergy
-                        input[idx++] = occupationalHazards.toFloat() ?: 0f     // OccuPational Hazards
-                        input[idx++] = geneticRisk.toFloat() ?: 0f             // Genetic Risk
-                        input[idx++] = if (chronicLungDisease) 1f else 0f            // chronic Lung Disease
-                        input[idx++] = balancedDiet.toFloat() ?: 0f            // Balanced Diet
-                        input[idx++] = obesityScale.toFloat() ?: 0f            // Obesity
-                        input[idx++] = if (smokingHabitual) 1f else 0f               // Smoking
-                        input[idx++] = if (passiveSmoker) 1f else 0f                 // Passive Smoker
-                        input[idx++] = if (chestPain) 1f else 0f                     // Chest Pain
-                        input[idx++] = if (coughingBlood) 1f else 0f                 // Coughing of Blood
-                        input[idx++] = if (fatigue) 1f else 0f                       // Fatigue
-                        input[idx++] = if (weightLoss) 1f else 0f                    // Weight Loss
-                        input[idx++] = if (shortnessOfBreath) 1f else 0f             // Shortness of Breath
-                        input[idx++] = if (wheezing) 1f else 0f                      // Wheezing
-                        input[idx++] = if (swallowingDifficulty) 1f else 0f          // Swallowing Difficulty
-                        input[idx++] = if (clubbing) 1f else 0f                      // Clubbing of Finger Nails
-                        input[idx++] = if (frequentCold) 1f else 0f                  // Frequent Cold
-                        input[idx++] = if (dryCough) 1f else 0f                      // Dry Cough
-                        input[idx++] = if (snoring) 1f else 0f                       // Snoring
+                        input[idx++] = airPollution.toFloat().safe()                 // Air Pollution
+                        input[idx++] = riskAlcoholScale.toFloat().safe()             // Alcohol use
+                        input[idx++] = if (dustAllergyPresent) 10f else 1f           // Dust Allergy
+                        input[idx++] = occupationalHazards.toFloat().safe()          // OccuPational Hazards
+                        input[idx++] = geneticRisk.toFloat().safe()                  // Genetic Risk
+                        input[idx++] = if (chronicLungDisease) 10f else 1f           // chronic Lung Disease
+                        input[idx++] = balancedDiet.toFloat().safe()                 // Balanced Diet
+                        input[idx++] = obesityScale.toFloat().safe()                 // Obesity
+                        input[idx++] = if (smokingHabitual) 10f else 1f              // Smoking
+                        input[idx++] = if (passiveSmoker) 10f else 1f                // Passive Smoker
+                        input[idx++] = if (chestPain) 10f else 1f                    // Chest Pain
+                        input[idx++] = if (coughingBlood) 10f else 1f                // Coughing of Blood
+                        input[idx++] = if (fatigue) 10f else 1f                      // Fatigue
+                        input[idx++] = if (weightLoss) 10f else 1f                   // Weight Loss
+                        input[idx++] = if (shortnessOfBreath) 10f else 1f            // Shortness of Breath
+                        input[idx++] = if (wheezing) 10f else 1f                     // Wheezing
+                        input[idx++] = if (swallowingDifficulty) 10f else 1f         // Swallowing Difficulty
+                        input[idx++] = if (clubbing) 10f else 1f                     // Clubbing of Finger Nails
+                        input[idx++] = if (frequentCold) 10f else 1f                 // Frequent Cold
+                        input[idx++] = if (dryCough) 10f else 1f                     // Dry Cough
+                        input[idx++] = if (snoring) 10f else 1f                      // Snoring
 
                         android.util.Log.d("LungModelRawInput", "Input mentah: " +
                                 input.joinToString(", ", prefix = "[", postfix = "]"))
@@ -513,23 +519,30 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
 
                         // === 3️⃣ Jalankan inferensi ===
                         val inputBuffer = arrayOf(input)
-                        val outputBuffer = Array(1) { FloatArray(3) } // Rendah, Sedang, Tinggi
-                        interpreter.run(inputBuffer, outputBuffer)
+                        // Buat buffer output untuk 3 kelas: Low, Medium, High
+                        val outputBuffer = Array(1) { FloatArray(3) }
 
+// Jalankan model
+                        interpreter.run(arrayOf(input), outputBuffer)
+
+// Ambil hasil prediksi
                         val result = outputBuffer[0]
-                        val maxIdx = result.indices.maxByOrNull { result[it] } ?: 0
+
+// Kalau kamu mau normalisasi (opsional, kalau model belum softmax)
+                        val sum = result.sum()
+                        val normalized = if (sum > 0) result.map { it / sum }.toFloatArray() else result
+
+                        val maxIdx = normalized.indices.maxByOrNull { normalized[it] } ?: 0
 
                         kategoriLung = when (maxIdx) {
-                            0 -> "Rendah"
-                            1 -> "Sedang"
-                            else -> "Tinggi"
+                            0 -> "Tinggi"   // High
+                            1 -> "Rendah"   // Low
+                            2 -> "Sedang"   // Medium
+                            else -> "Tidak diketahui"
                         }
 
-                        android.util.Log.d(
-                            "LungModelOutput",
-                            "Probabilitas = Rendah:${"%.4f".format(result[0])}, Sedang:${"%.4f".format(result[1])}, Tinggi:${"%.4f".format(result[2])}"
-                        )
-                        android.util.Log.d("LungModelKategori", "Prediksi kategori: $kategoriLung")
+                        Log.d("LungModelOutput", "Probabilitas: High=${normalized[0]}, Low=${normalized[1]}, Medium=${normalized[2]}")
+                        Log.d("LungModelKategori", "Prediksi: $kategoriLung")
 
                     } catch (e: Exception) {
                         Toast.makeText(context, "Error ML (Lung Disease): ${e.message}", Toast.LENGTH_LONG).show()

@@ -83,10 +83,29 @@ fun RokokScreen(onBackClick: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Misi hari ini selesai 🎉", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Pengisian konsumsi rokok telah dilakukan, \nkembali lagi besok!",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onBackClick) {
-                    Text("Kembali")
+
+                Button(
+                    onClick = onBackClick,
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC15F56)),
+                    modifier = Modifier
+                        .width(140.dp)
+                        .height(45.dp)
+                ) {
+                    Text(
+                        "Tutup",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
             }
         } else {

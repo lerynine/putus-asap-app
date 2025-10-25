@@ -58,12 +58,12 @@ fun HasilDeteksiScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Card Risiko Kanker Paru-Paru
-        resikoLung?.let {
+        // ✅ Card Risiko Kanker Paru-Paru (hanya tampil jika bukan N/A)
+        if (!resikoLung.isNullOrEmpty() && resikoLung != "N/A") {
             RisikoCard(
                 title = "Risiko Kanker Paru Paru",
-                level = it,
-                description = when (it) {
+                level = resikoLung,
+                description = when (resikoLung) {
                     "Rendah" -> "Tetap jaga pola hidup sehat dan lanjutkan misi harian!"
                     "Sedang" -> "Ikuti misi harian dan pertimbangkan pemeriksaan dini."
                     else -> "Segera ikuti misi harian dan periksakan diri ke fasilitas kesehatan!"
@@ -71,12 +71,12 @@ fun HasilDeteksiScreen(
             )
         }
 
-        // Card Risiko Penyakit Paru Obstruktif Kronik (Asthma)
-        resikoAsthma?.let {
+        // ✅ Card Risiko PPOK / Asma
+        if (!resikoAsthma.isNullOrEmpty() && resikoAsthma != "N/A") {
             RisikoCard(
                 title = "Risiko Penyakit Paru Obstruktif Kronik",
-                level = it,
-                description = when (it) {
+                level = resikoAsthma,
+                description = when (resikoAsthma) {
                     "Rendah" -> "Tetap jaga pola hidup sehat dan lanjutkan misi harian!"
                     "Sedang" -> "Ikuti misi harian dan pertimbangkan pemeriksaan dini."
                     else -> "Segera ikuti misi harian dan periksakan diri ke fasilitas kesehatan!"
@@ -84,12 +84,12 @@ fun HasilDeteksiScreen(
             )
         }
 
-        // Card Risiko Penyakit Kardiovaskular
-        resikoCardio?.let {
+        // ✅ Card Risiko Kardiovaskular
+        if (!resikoCardio.isNullOrEmpty() && resikoCardio != "N/A") {
             RisikoCard(
                 title = "Risiko Penyakit Kardiovaskular",
-                level = it,
-                description = when (it) {
+                level = resikoCardio,
+                description = when (resikoCardio) {
                     "Rendah" -> "Tetap jaga pola hidup sehat dan lanjutkan misi harian!"
                     "Sedang" -> "Ikuti misi harian dan pertimbangkan pemeriksaan dini."
                     else -> "Segera ikuti misi harian dan periksakan diri ke fasilitas kesehatan!"
@@ -98,6 +98,7 @@ fun HasilDeteksiScreen(
         }
     }
 }
+
 
 @Composable
 fun RisikoCard(title: String, level: String, description: String) {

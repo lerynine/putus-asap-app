@@ -292,7 +292,7 @@ fun AktivitasScreen(onBackClick: () -> Unit) {
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "🎉 Selamat!",
+                                    text = "Selamat!",
                                     style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
                                     modifier = Modifier.padding(bottom = 8.dp)
                                 )
