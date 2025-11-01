@@ -199,21 +199,81 @@ fun FormDeteksiScreen(onBack: () -> Unit, onSubmit: (Map<String, Any?>) -> Unit)
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
-                    value = cholesterol,
-                    onValueChange = { cholesterol = it.filter(Char::isDigit) },
-                    label = { Text("Kadar Kolesterol") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = glucose,
-                    onValueChange = { glucose = it.filter(Char::isDigit) },
-                    label = { Text("Kadar Glukosa") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
+                var expandedChol by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedChol,
+                    onExpandedChange = { expandedChol = !expandedChol },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = cholesterol,
+                        onValueChange = { },
+                        label = { Text("Kadar Kolesterol") },
+                        readOnly = true,
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedChol,
+                        onDismissRequest = { expandedChol = false }
+                    ) {
+                        listOf("1", "2", "3").forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    cholesterol = option
+                                    expandedChol = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                var expandedGlu by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedGlu,
+                    onExpandedChange = { expandedGlu = !expandedGlu },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = glucose,
+                        onValueChange = { },
+                        label = { Text("Kadar Glukosa") },
+                        readOnly = true,
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedGlu,
+                        onDismissRequest = { expandedGlu = false }
+                    ) {
+                        listOf("1", "2", "3").forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    glucose = option
+                                    expandedGlu = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
+            Text(
+                text = "Keterangan:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = Color(0xFF444444),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "1 = Normal\n2 = Di atas normal\n3 = Jauh di atas normal",
+                fontSize = 13.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
             ToggleRow(
                 "Aktivitas Fisik (aktif/tidak)",

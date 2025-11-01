@@ -86,7 +86,11 @@ fun MisiTidurScreen(
             step == 1 -> {
                 QuestionScreen(
                     question = "Jam berapa kamu tidur tadi malam?",
-                    options = listOf("Sebelum jam 10 malam", "Antara jam 10-11 malam", "Setelah jam 11 malam"),
+                    options = listOf(
+                        "Sebelum jam 10 malam",
+                        "Antara jam 10-11 malam",
+                        "Setelah jam 11 malam"
+                    ),
                     onBackClick = onBackClick
                 ) { answer ->
                     jamTidur = answer
@@ -147,17 +151,20 @@ fun QuestionScreen(
     onBackClick: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.White), // 🔹 putih polos
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .padding(16.dp)
     ) {
-        // 🔙 Tombol back
+        // 🔙 Tombol back di pojok kiri atas
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color.White)
-                .clickable { onBackClick() },
+                .clickable { onBackClick() }
+                .align(Alignment.TopStart),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -167,23 +174,30 @@ fun QuestionScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        // Isi pertanyaan dan opsi di tengah
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = question,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
 
-        Text(
-            text = question,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        options.forEach { option ->
-            AnswerOption(option) { onSelect(option) }
-            Spacer(modifier = Modifier.height(16.dp))
+            options.forEach { option ->
+                AnswerOption(option) { onSelect(option) }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
+
 
 @Composable
 fun AnswerOption(text: String, onClick: () -> Unit) {
